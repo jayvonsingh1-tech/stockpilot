@@ -35,10 +35,17 @@ class ResearchReportGenerator:
             
             # Fetch data
             df = self.data_fetcher.fetch_ohlcv(ticker, period='1y', interval='1d')
-            info = self.data_fetcher.get_stock_info(ticker)
+            if df is None or len(df) < 100:
+                logger.warning(f"Insufficient price data for {ticker}")
+                return None
             
-            if df is None or info is None:
-                logger.warning(f"Insufficient data for {ticker}")
+            # Get full stock info from yfinance
+            import yfinance as yf
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            
+            if not info or 'longName' not in info:
+                logger.warning(f"No company info available for {ticker}")
                 return None
             
             # Build report sections
@@ -237,13 +244,32 @@ class ResearchReportGenerator:
     
     def _get_news_summary(self, ticker: str) -> str:
         """Get news summary (placeholder)"""
-        # TODO: Implement news scraping in Phase 3
-        return "News analysis coming in Phase 3"
+        try:
+            import yfinance as yf
+            stock = yf.Ticker(ticker)
+            news = stock.news
+            
+            if news and len(news) > 0:
+                latest = news[0]
+                return f"Latest: {latest.get('title', 'No title')} - {latest.get('publisher', 'Unknown')}"
+            return "No recent news available"
+        except Exception as e:
+            logger.debug(f"Error fetching news for {ticker}: {e}")
+            return "News unavailable"
     
     def _get_insider_activity(self, info: Dict) -> str:
         """Get insider activity (placeholder)"""
-        # TODO: Implement insider tracking in Phase 3
-        return "Insider activity tracking coming in Phase 3"
+        try:
+            # Check for insider ownership
+            insider_percent = info.get('heldPercentInsiders', 0)
+            institutional_percent = info.get('heldPercentInstitutions', 0)
+            
+            if insider_percent > 0 or institutional_percent > 0:
+                return f"Insiders: {insider_percent*100:.1f}%, Institutions: {institutional_percent*100:.1f}%"
+            return "No insider data available"
+        except Exception as e:
+            logger.debug(f"Error getting insider activity: {e}")
+            return "Insider data unavailable"
     
     def _identify_risk_factors(self, info: Dict, df: pd.DataFrame) -> List[str]:
         """Identify risk factors"""
