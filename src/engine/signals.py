@@ -36,7 +36,7 @@ class SignalGenerator:
             BreakoutStrategy()
         ]
         
-        self.min_confidence = self.config.get('signals.min_confidence', 85)
+        self.min_confidence = self.config.get('signals.min_confidence', 80)
         
     def scan_for_signals(self, tickers: List[str]) -> List[Dict]:
         """

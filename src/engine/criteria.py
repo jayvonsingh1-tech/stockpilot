@@ -265,7 +265,7 @@ class CriteriaChecker:
             return True
         
         try:
-            min_confidence = criteria.get('min_confidence', 85)
+            min_confidence = criteria.get('min_confidence', 80)
             return signal.get('confidence', 0) >= min_confidence
             
         except Exception as e:

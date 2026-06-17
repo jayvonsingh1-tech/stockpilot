@@ -210,7 +210,7 @@ class SignalScheduler:
 • Available Slots: {portfolio['available_slots']}
 
 ⚙️ **Settings**
-• Min Confidence: {self.config.get('signals.min_confidence', 85)}%
+• Min Confidence: {self.config.get('signals.min_confidence', 80)}%
 • Risk per Trade: {portfolio['risk_per_trade_percent']:.1f}%
 """
             
@@ -243,7 +243,7 @@ class SignalScheduler:
 🎯 **Next Week Goals**
 • Continue monitoring watchlist
 • Target: 5% weekly return
-• Maintain 85%+ confidence threshold
+• Maintain 80%+ confidence threshold
 
 Have a great week! 🚀
 """
