@@ -1,0 +1,542 @@
+# StockPilot Watchlist - 75 Stocks
+# Add stocks you want to monitor here
+
+watchlist:
+  # UK Stocks (LSE) - 10 stocks
+  - ticker: VID.L
+    name: Videndum PLC
+    market: LSE
+    sector: Technology
+    notes: "Keeping an eye on this - good fundamentals"
+    priority: high
+    
+  - ticker: LSEG.L
+    name: London Stock Exchange Group
+    market: LSE
+    sector: Financial Services
+    notes: "Strong fundamentals, watching for entry"
+    priority: medium
+    
+  - ticker: BP.L
+    name: BP PLC
+    market: LSE
+    sector: Energy
+    notes: "Oil major"
+    priority: medium
+    
+  - ticker: SHEL.L
+    name: Shell PLC
+    market: LSE
+    sector: Energy
+    notes: "Energy giant"
+    priority: medium
+    
+  - ticker: HSBA.L
+    name: HSBC Holdings
+    market: LSE
+    sector: Financial Services
+    notes: "Major bank"
+    priority: medium
+    
+  - ticker: AZN.L
+    name: AstraZeneca
+    market: LSE
+    sector: Healthcare
+    notes: "Pharmaceutical leader"
+    priority: medium
+    
+  - ticker: ULVR.L
+    name: Unilever
+    market: LSE
+    sector: Consumer Defensive
+    notes: "Consumer goods"
+    priority: low
+    
+  - ticker: DGE.L
+    name: Diageo
+    market: LSE
+    sector: Consumer Defensive
+    notes: "Spirits/alcohol"
+    priority: low
+    
+  - ticker: GSK.L
+    name: GSK PLC
+    market: LSE
+    sector: Healthcare
+    notes: "Pharmaceutical"
+    priority: medium
+    
+  - ticker: BARC.L
+    name: Barclays
+    market: LSE
+    sector: Financial Services
+    notes: "Major UK bank"
+    priority: medium
+  
+  # US Tech Giants - 15 stocks
+  - ticker: NVDA
+    name: NVIDIA Corporation
+    market: NASDAQ
+    sector: Technology
+    notes: "AI leader, high growth"
+    priority: high
+    
+  - ticker: AAPL
+    name: Apple Inc
+    market: NASDAQ
+    sector: Technology
+    notes: "Blue chip, consistent performer"
+    priority: high
+    
+  - ticker: MSFT
+    name: Microsoft Corporation
+    market: NASDAQ
+    sector: Technology
+    notes: "Cloud and AI growth"
+    priority: high
+    
+  - ticker: AMZN
+    name: Amazon.com Inc
+    market: NASDAQ
+    sector: Consumer Cyclical
+    notes: "E-commerce and cloud leader"
+    priority: high
+    
+  - ticker: GOOGL
+    name: Alphabet Inc
+    market: NASDAQ
+    sector: Technology
+    notes: "Search and cloud leader"
+    priority: high
+    
+  - ticker: META
+    name: Meta Platforms
+    market: NASDAQ
+    sector: Technology
+    notes: "Social media giant"
+    priority: high
+    
+  - ticker: TSLA
+    name: Tesla Inc
+    market: NASDAQ
+    sector: Automotive
+    notes: "High volatility, good for swing trades"
+    priority: medium
+    
+  - ticker: AMD
+    name: Advanced Micro Devices
+    market: NASDAQ
+    sector: Technology
+    notes: "Semiconductor play"
+    priority: high
+    
+  - ticker: NFLX
+    name: Netflix Inc
+    market: NASDAQ
+    sector: Communication Services
+    notes: "Streaming leader"
+    priority: medium
+    
+  - ticker: INTC
+    name: Intel Corporation
+    market: NASDAQ
+    sector: Technology
+    notes: "Chip manufacturer"
+    priority: medium
+    
+  - ticker: CSCO
+    name: Cisco Systems
+    market: NASDAQ
+    sector: Technology
+    notes: "Networking equipment"
+    priority: low
+    
+  - ticker: ORCL
+    name: Oracle Corporation
+    market: NYSE
+    sector: Technology
+    notes: "Database and cloud"
+    priority: medium
+    
+  - ticker: CRM
+    name: Salesforce Inc
+    market: NYSE
+    sector: Technology
+    notes: "CRM software leader"
+    priority: medium
+    
+  - ticker: ADBE
+    name: Adobe Inc
+    market: NASDAQ
+    sector: Technology
+    notes: "Creative software"
+    priority: medium
+    
+  - ticker: QCOM
+    name: Qualcomm Inc
+    market: NASDAQ
+    sector: Technology
+    notes: "Mobile chips"
+    priority: medium
+  
+  # US Financial - 10 stocks
+  - ticker: JPM
+    name: JPMorgan Chase
+    market: NYSE
+    sector: Financial Services
+    notes: "Major bank"
+    priority: high
+    
+  - ticker: BAC
+    name: Bank of America
+    market: NYSE
+    sector: Financial Services
+    notes: "Major bank"
+    priority: medium
+    
+  - ticker: WFC
+    name: Wells Fargo
+    market: NYSE
+    sector: Financial Services
+    notes: "Major bank"
+    priority: medium
+    
+  - ticker: GS
+    name: Goldman Sachs
+    market: NYSE
+    sector: Financial Services
+    notes: "Investment bank"
+    priority: medium
+    
+  - ticker: MS
+    name: Morgan Stanley
+    market: NYSE
+    sector: Financial Services
+    notes: "Investment bank"
+    priority: medium
+    
+  - ticker: V
+    name: Visa Inc
+    market: NYSE
+    sector: Financial Services
+    notes: "Payment processor"
+    priority: high
+    
+  - ticker: MA
+    name: Mastercard Inc
+    market: NYSE
+    sector: Financial Services
+    notes: "Payment processor"
+    priority: high
+    
+  - ticker: AXP
+    name: American Express
+    market: NYSE
+    sector: Financial Services
+    notes: "Credit cards"
+    priority: medium
+    
+  - ticker: BLK
+    name: BlackRock Inc
+    market: NYSE
+    sector: Financial Services
+    notes: "Asset management"
+    priority: medium
+    
+  - ticker: C
+    name: Citigroup Inc
+    market: NYSE
+    sector: Financial Services
+    notes: "Major bank"
+    priority: medium
+  
+  # US Healthcare - 10 stocks
+  - ticker: JNJ
+    name: Johnson & Johnson
+    market: NYSE
+    sector: Healthcare
+    notes: "Healthcare conglomerate"
+    priority: medium
+    
+  - ticker: UNH
+    name: UnitedHealth Group
+    market: NYSE
+    sector: Healthcare
+    notes: "Health insurance"
+    priority: high
+    
+  - ticker: PFE
+    name: Pfizer Inc
+    market: NYSE
+    sector: Healthcare
+    notes: "Pharmaceutical company"
+    priority: medium
+    
+  - ticker: ABBV
+    name: AbbVie Inc
+    market: NYSE
+    sector: Healthcare
+    notes: "Biopharmaceutical"
+    priority: medium
+    
+  - ticker: TMO
+    name: Thermo Fisher Scientific
+    market: NYSE
+    sector: Healthcare
+    notes: "Life sciences"
+    priority: medium
+    
+  - ticker: MRK
+    name: Merck & Co
+    market: NYSE
+    sector: Healthcare
+    notes: "Pharmaceutical"
+    priority: medium
+    
+  - ticker: LLY
+    name: Eli Lilly
+    market: NYSE
+    sector: Healthcare
+    notes: "Pharmaceutical"
+    priority: high
+    
+  - ticker: ABT
+    name: Abbott Laboratories
+    market: NYSE
+    sector: Healthcare
+    notes: "Medical devices"
+    priority: medium
+    
+  - ticker: DHR
+    name: Danaher Corporation
+    market: NYSE
+    sector: Healthcare
+    notes: "Life sciences"
+    priority: medium
+    
+  - ticker: BMY
+    name: Bristol Myers Squibb
+    market: NYSE
+    sector: Healthcare
+    notes: "Pharmaceutical"
+    priority: medium
+  
+  # US Consumer & Retail - 10 stocks
+  - ticker: WMT
+    name: Walmart Inc
+    market: NYSE
+    sector: Consumer Defensive
+    notes: "Retail giant"
+    priority: medium
+    
+  - ticker: HD
+    name: Home Depot
+    market: NYSE
+    sector: Consumer Cyclical
+    notes: "Home improvement"
+    priority: medium
+    
+  - ticker: MCD
+    name: McDonald's Corporation
+    market: NYSE
+    sector: Consumer Cyclical
+    notes: "Fast food"
+    priority: medium
+    
+  - ticker: NKE
+    name: Nike Inc
+    market: NYSE
+    sector: Consumer Cyclical
+    notes: "Athletic apparel"
+    priority: medium
+    
+  - ticker: SBUX
+    name: Starbucks Corporation
+    market: NASDAQ
+    sector: Consumer Cyclical
+    notes: "Coffee chain"
+    priority: low
+    
+  - ticker: TGT
+    name: Target Corporation
+    market: NYSE
+    sector: Consumer Defensive
+    notes: "Retail"
+    priority: medium
+    
+  - ticker: COST
+    name: Costco Wholesale
+    market: NASDAQ
+    sector: Consumer Defensive
+    notes: "Warehouse retail"
+    priority: medium
+    
+  - ticker: PG
+    name: Procter & Gamble
+    market: NYSE
+    sector: Consumer Defensive
+    notes: "Consumer goods"
+    priority: low
+    
+  - ticker: KO
+    name: Coca-Cola Company
+    market: NYSE
+    sector: Consumer Defensive
+    notes: "Beverages"
+    priority: low
+    
+  - ticker: PEP
+    name: PepsiCo Inc
+    market: NASDAQ
+    sector: Consumer Defensive
+    notes: "Beverages and snacks"
+    priority: low
+  
+  # US Industrial & Other - 20 stocks
+  - ticker: BA
+    name: Boeing Company
+    market: NYSE
+    sector: Industrials
+    notes: "Aerospace manufacturer"
+    priority: medium
+    
+  - ticker: CAT
+    name: Caterpillar Inc
+    market: NYSE
+    sector: Industrials
+    notes: "Heavy machinery"
+    priority: medium
+    
+  - ticker: GE
+    name: General Electric
+    market: NYSE
+    sector: Industrials
+    notes: "Industrial conglomerate"
+    priority: medium
+    
+  - ticker: DIS
+    name: Walt Disney Company
+    market: NYSE
+    sector: Communication Services
+    notes: "Entertainment conglomerate"
+    priority: medium
+    
+  - ticker: XOM
+    name: Exxon Mobil
+    market: NYSE
+    sector: Energy
+    notes: "Oil major"
+    priority: medium
+    
+  - ticker: CVX
+    name: Chevron Corporation
+    market: NYSE
+    sector: Energy
+    notes: "Oil major"
+    priority: medium
+    
+  - ticker: COP
+    name: ConocoPhillips
+    market: NYSE
+    sector: Energy
+    notes: "Oil and gas"
+    priority: low
+    
+  - ticker: NEE
+    name: NextEra Energy
+    market: NYSE
+    sector: Utilities
+    notes: "Renewable energy"
+    priority: low
+    
+  - ticker: T
+    name: AT&T Inc
+    market: NYSE
+    sector: Communication Services
+    notes: "Telecom"
+    priority: low
+    
+  - ticker: VZ
+    name: Verizon Communications
+    market: NYSE
+    sector: Communication Services
+    notes: "Telecom"
+    priority: low
+    
+  - ticker: IBM
+    name: IBM Corporation
+    market: NYSE
+    sector: Technology
+    notes: "IT services"
+    priority: low
+    
+  - ticker: HON
+    name: Honeywell International
+    market: NASDAQ
+    sector: Industrials
+    notes: "Industrial conglomerate"
+    priority: medium
+    
+  - ticker: UPS
+    name: United Parcel Service
+    market: NYSE
+    sector: Industrials
+    notes: "Logistics"
+    priority: medium
+    
+  - ticker: RTX
+    name: Raytheon Technologies
+    market: NYSE
+    sector: Industrials
+    notes: "Aerospace and defense"
+    priority: low
+    
+  - ticker: LMT
+    name: Lockheed Martin
+    market: NYSE
+    sector: Industrials
+    notes: "Defense contractor"
+    priority: low
+    
+  - ticker: MMM
+    name: 3M Company
+    market: NYSE
+    sector: Industrials
+    notes: "Industrial conglomerate"
+    priority: low
+    
+  - ticker: DE
+    name: Deere & Company
+    market: NYSE
+    sector: Industrials
+    notes: "Agricultural equipment"
+    priority: medium
+    
+  - ticker: FDX
+    name: FedEx Corporation
+    market: NYSE
+    sector: Industrials
+    notes: "Logistics"
+    priority: medium
+    
+  - ticker: SPGI
+    name: S&P Global Inc
+    market: NYSE
+    sector: Financial Services
+    notes: "Financial data"
+    priority: low
+    
+  - ticker: CME
+    name: CME Group Inc
+    market: NASDAQ
+    sector: Financial Services
+    notes: "Derivatives exchange"
+    priority: low
+
+# Priority levels:
+# - high: Monitor closely, alert on any significant movement
+# - medium: Regular monitoring
+# - low: Occasional checks
+
+# Total: 75 stocks (10 UK + 65 US)
+# Sectors: Technology, Financial Services, Healthcare, Consumer, Industrials, Energy

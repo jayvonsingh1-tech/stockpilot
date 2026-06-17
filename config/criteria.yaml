@@ -1,0 +1,66 @@
+# Mandatory Signal Criteria
+# ALL criteria must pass before a signal is sent
+
+criteria:
+  1_trend_confirmation:
+    name: "Trend Confirmation"
+    description: "Price aligned with key moving averages"
+    enabled: true
+    
+  2_volume_confirmation:
+    name: "Volume Confirmation"
+    description: "Above-average volume on signal candle"
+    enabled: true
+    min_volume_multiplier: 1.2
+    
+  3_risk_reward_ratio:
+    name: "Risk/Reward Ratio"
+    description: "Minimum risk/reward ratio"
+    enabled: true
+    min_ratio: 2.0
+    
+  4_rsi_confirmation:
+    name: "RSI Confirmation"
+    description: "RSI not overbought for buys, not oversold for sells"
+    enabled: true
+    buy_max_rsi: 70
+    sell_min_rsi: 30
+    
+  5_macd_alignment:
+    name: "MACD Alignment"
+    description: "Momentum in direction of trade"
+    enabled: true
+    
+  6_support_resistance:
+    name: "Support/Resistance"
+    description: "Entry near support (buys) or resistance (sells)"
+    enabled: true
+    proximity_percent: 2.0
+    
+  7_no_earnings_conflict:
+    name: "No Earnings Conflict"
+    description: "No major earnings/events within timeframe"
+    enabled: true
+    days_before_earnings: 1
+    days_after_earnings: 1
+    
+  8_sector_correlation:
+    name: "Sector Correlation"
+    description: "Not overexposed to one sector"
+    enabled: true
+    max_positions_per_sector: 2
+    
+  9_confidence_score:
+    name: "Confidence Score"
+    description: "Minimum confidence threshold"
+    enabled: true
+    min_confidence: 85
+    
+  10_multi_timeframe:
+    name: "Multi-Timeframe Agreement"
+    description: "Signal confirmed on multiple timeframes"
+    enabled: true
+    min_timeframes: 2
+    required_timeframes:
+      - 1h
+      - 1d

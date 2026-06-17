@@ -1,0 +1,84 @@
+========================================
+RAILWAY DEPLOYMENT COMMANDS
+========================================
+
+Copy and paste these commands one at a time into your terminal.
+Wait for each command to finish before running the next one.
+
+========================================
+STEP 1: Navigate to stockpilot directory
+========================================
+
+cd stockpilot
+
+
+========================================
+STEP 2: Initialize Git repository
+========================================
+
+git init
+
+
+========================================
+STEP 3: Add all files to Git
+========================================
+
+git add .
+
+
+========================================
+STEP 4: Create first commit
+========================================
+
+git commit -m "Ready for Railway deployment"
+
+
+========================================
+STEP 5: Set main branch
+========================================
+
+git branch -M main
+
+
+========================================
+STEP 6: Add GitHub remote
+========================================
+
+IMPORTANT: Replace YOUR-USERNAME with your actual GitHub username!
+
+git remote add origin https://github.com/YOUR-USERNAME/stockpilot.git
+
+
+========================================
+STEP 7: Push to GitHub
+========================================
+
+git push -u origin main
+
+
+========================================
+NOTES:
+========================================
+
+1. If you don't have a GitHub repository yet:
+   - Go to github.com
+   - Click "New repository"
+   - Name it "stockpilot"
+   - Don't initialize with README
+   - Copy the repository URL
+   - Use that URL in Step 6
+
+2. If Git asks for credentials:
+   - Use your GitHub username
+   - For password, use a Personal Access Token (not your GitHub password)
+   - Get token from: github.com → Settings → Developer settings → Personal access tokens
+
+3. After pushing to GitHub:
+   - Go to railway.app
+   - Login with GitHub
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Choose your stockpilot repository
+   - Railway will automatically deploy!
+
+========================================

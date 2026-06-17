@@ -1,0 +1,311 @@
+"""
+Scheduler - Manages scheduled tasks for signal scanning
+"""
+import asyncio
+from datetime import datetime, time
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
+from .engine.signals import SignalGenerator
+from .notifications.telegram_bot import TelegramBot
+from .analysis.screener import StockScreener
+from .analysis.research import ResearchReportGenerator
+from .utils.logger import setup_logger
+from .utils.config import get_config
+
+
+logger = setup_logger(__name__)
+
+
+class SignalScheduler:
+    """Manages scheduled signal scanning"""
+    
+    def __init__(self, signal_generator: SignalGenerator, telegram_bot: TelegramBot, watchlist: list):
+        """
+        Initialize scheduler
+        
+        Args:
+            signal_generator: SignalGenerator instance
+            telegram_bot: TelegramBot instance
+            watchlist: List of stocks to monitor
+        """
+        self.signal_generator = signal_generator
+        self.telegram_bot = telegram_bot
+        self.watchlist = watchlist
+        self.config = get_config()
+        self.scheduler = AsyncIOScheduler()
+        self.stock_screener = StockScreener()
+        self.research_generator = ResearchReportGenerator()
+        
+        # Market hours (adjust for your timezone)
+        self.market_open = time(9, 30)  # 9:30 AM
+        self.market_close = time(16, 0)  # 4:00 PM
+        
+    def start(self):
+        """Start the scheduler"""
+        logger.info("Starting signal scheduler...")
+        
+        # Schedule market open scan (US: 9:30 AM ET, UK: 8:00 AM GMT)
+        self.scheduler.add_job(
+            self._market_open_scan,
+            CronTrigger(hour=9, minute=30, day_of_week='mon-fri'),
+            id='market_open_scan',
+            name='Market Open Scan'
+        )
+        
+        # Schedule 15-minute scans during market hours (9:30 AM - 4:00 PM ET)
+        # This will scan at :00, :15, :30, :45 of each hour
+        self.scheduler.add_job(
+            self._periodic_scan,
+            CronTrigger(hour='9-15', minute='0,15,30,45', day_of_week='mon-fri'),
+            id='periodic_scan',
+            name='15-Minute Scan'
+        )
+        
+        # Additional scan at 9:45 to catch early moves
+        self.scheduler.add_job(
+            self._periodic_scan,
+            CronTrigger(hour=9, minute=45, day_of_week='mon-fri'),
+            id='early_scan',
+            name='Early Market Scan'
+        )
+        
+        # Schedule market close scan (4:00 PM ET)
+        self.scheduler.add_job(
+            self._market_close_scan,
+            CronTrigger(hour=16, minute=0, day_of_week='mon-fri'),
+            id='market_close_scan',
+            name='Market Close Scan'
+        )
+        
+        # Schedule daily summary after all markets closed (9:30 PM UK / 4:30 PM ET)
+        # This gives 30 minutes after US market close for final processing
+        self.scheduler.add_job(
+            self._send_daily_summary,
+            CronTrigger(hour=21, minute=30, day_of_week='mon-fri'),
+            id='daily_summary',
+            name='Daily Summary'
+        )
+        
+        # Schedule weekly report (Sunday evening)
+        self.scheduler.add_job(
+            self._send_weekly_report,
+            CronTrigger(day_of_week='sun', hour=18, minute=0),
+            id='weekly_report',
+            name='Weekly Report'
+        )
+        
+        # Schedule daily stock screening (8:00 AM before market open)
+        self.scheduler.add_job(
+            self._run_daily_screening,
+            CronTrigger(hour=8, minute=0, day_of_week='mon-fri'),
+            id='daily_screening',
+            name='Daily Stock Screening'
+        )
+        
+        self.scheduler.start()
+        logger.info("Scheduler started successfully")
+        logger.info("Scanning every 15 minutes during market hours (9:30 AM - 4:00 PM ET)")
+        logger.info("Daily summary at 9:30 PM UK (after all markets close)")
+        logger.info("Daily stock screening at 8:00 AM (before market open)")
+        logger.info(f"Next scan: {self._get_next_scan_time()}")
+    
+    def stop(self):
+        """Stop the scheduler"""
+        logger.info("Stopping scheduler...")
+        self.scheduler.shutdown()
+        logger.info("Scheduler stopped")
+    
+    async def _market_open_scan(self):
+        """Scan at market open"""
+        logger.info("=" * 60)
+        logger.info("MARKET OPEN SCAN")
+        logger.info("=" * 60)
+        
+        await self.telegram_bot.send_alert(
+            "Market Open",
+            "🔔 Markets are now open. Starting signal scan...",
+            "INFO"
+        )
+        
+        await self._scan_and_send_signals("Market Open")
+    
+    async def _periodic_scan(self):
+        """15-minute scan during market hours"""
+        logger.info("=" * 60)
+        logger.info("15-MINUTE SCAN")
+        logger.info("=" * 60)
+        
+        await self._scan_and_send_signals("15-Minute")
+    
+    async def _market_close_scan(self):
+        """Scan at market close"""
+        logger.info("=" * 60)
+        logger.info("MARKET CLOSE SCAN")
+        logger.info("=" * 60)
+        
+        await self._scan_and_send_signals("Market Close")
+        
+        await self.telegram_bot.send_alert(
+            "Market Close",
+            "🔔 Markets are now closed. Final scan complete.",
+            "INFO"
+        )
+    
+    async def _scan_and_send_signals(self, scan_type: str):
+        """
+        Scan watchlist and send signals
+        
+        Args:
+            scan_type: Type of scan (e.g., "Market Open", "Hourly")
+        """
+        try:
+            logger.info(f"Starting {scan_type} scan of {len(self.watchlist)} stocks...")
+            
+            # Get tickers
+            tickers = [stock['ticker'] for stock in self.watchlist]
+            
+            # Scan for signals
+            signals = self.signal_generator.scan_for_signals(tickers)
+            
+            if signals:
+                logger.info(f"Found {len(signals)} signal(s) in {scan_type} scan")
+                
+                for signal in signals:
+                    # Send via Telegram
+                    await self.telegram_bot.send_signal(signal)
+                    logger.info(f"Signal sent: {signal['action']} {signal['ticker']}")
+                    
+                    # Small delay between signals
+                    await asyncio.sleep(1)
+            else:
+                logger.info(f"No signals found in {scan_type} scan")
+                
+        except Exception as e:
+            logger.error(f"Error in {scan_type} scan: {e}", exc_info=True)
+            await self.telegram_bot.send_alert(
+                "Scan Error",
+                f"Error during {scan_type} scan: {str(e)}",
+                "ERROR"
+            )
+    
+    async def _send_daily_summary(self):
+        """Send daily summary"""
+        logger.info("Sending daily summary...")
+        
+        try:
+            # Get portfolio summary
+            portfolio = self.signal_generator.risk_manager.get_portfolio_summary()
+            
+            summary = f"""
+📊 **Daily Summary** - {datetime.now().strftime('%Y-%m-%d')}
+
+💰 **Portfolio**
+• Capital: ${portfolio['current_capital']:,.2f}
+• Daily P&L: ${portfolio['daily_pnl']:,.2f} ({portfolio['daily_pnl_percent']:.2f}%)
+• Total P&L: ${portfolio['total_pnl']:,.2f} ({portfolio['total_pnl_percent']:.2f}%)
+
+📈 **Positions**
+• Open: {portfolio['open_positions']}
+• Available Slots: {portfolio['available_slots']}
+
+⚙️ **Settings**
+• Min Confidence: {self.config.get('signals.min_confidence', 85)}%
+• Risk per Trade: {portfolio['risk_per_trade_percent']:.1f}%
+"""
+            
+            await self.telegram_bot.send_message(summary)
+            logger.info("Daily summary sent")
+            
+        except Exception as e:
+            logger.error(f"Error sending daily summary: {e}", exc_info=True)
+    
+    async def _send_weekly_report(self):
+        """Send weekly performance report"""
+        logger.info("Sending weekly report...")
+        
+        try:
+            portfolio = self.signal_generator.risk_manager.get_portfolio_summary()
+            
+            report = f"""
+📈 **Weekly Report** - Week of {datetime.now().strftime('%Y-%m-%d')}
+
+💰 **Performance**
+• Starting Capital: ${self.signal_generator.risk_manager.initial_capital:,.2f}
+• Current Capital: ${portfolio['current_capital']:,.2f}
+• Weekly Return: {portfolio['total_pnl_percent']:.2f}%
+
+📊 **Trading Activity**
+• Signals Generated: TBD
+• Trades Taken: TBD
+• Win Rate: TBD
+
+🎯 **Next Week Goals**
+• Continue monitoring watchlist
+• Target: 5% weekly return
+• Maintain 85%+ confidence threshold
+
+Have a great week! 🚀
+"""
+            
+            await self.telegram_bot.send_message(report)
+            logger.info("Weekly report sent")
+            
+        except Exception as e:
+            logger.error(f"Error sending weekly report: {e}", exc_info=True)
+    
+    def _get_next_scan_time(self) -> str:
+        """Get next scheduled scan time"""
+        jobs = self.scheduler.get_jobs()
+        if jobs:
+            next_job = min(jobs, key=lambda j: j.next_run_time)
+            return next_job.next_run_time.strftime('%Y-%m-%d %H:%M:%S')
+        return "No scans scheduled"
+    
+    async def manual_scan(self):
+        """Trigger a manual scan"""
+        logger.info("Manual scan triggered")
+        await self._scan_and_send_signals("Manual")
+    
+    async def _run_daily_screening(self):
+        """Run daily stock screening to find new opportunities"""
+        logger.info("=" * 60)
+        logger.info("DAILY STOCK SCREENING")
+        logger.info("=" * 60)
+        
+        try:
+            await self.telegram_bot.send_alert(
+                "Daily Screening",
+                "🔍 Starting daily stock screening to find new investment opportunities...",
+                "INFO"
+            )
+            
+            # Run screening
+            candidates = self.stock_screener.screen_daily(max_results=10)
+            
+            if candidates:
+                logger.info(f"Found {len(candidates)} high-quality candidates")
+                
+                # Send screening results
+                await self.telegram_bot.send_screening_results(candidates)
+                
+                # Generate detailed report for top candidate
+                if candidates[0]['total_score'] >= 85:
+                    top_stock = candidates[0]['ticker']
+                    logger.info(f"Generating detailed report for top candidate: {top_stock}")
+                    
+                    report = self.research_generator.generate_report(top_stock)
+                    if report:
+                        await asyncio.sleep(2)  # Small delay
+                        await self.telegram_bot.send_research_report(report)
+            else:
+                logger.info("No candidates found meeting criteria")
+                await self.telegram_bot.send_screening_results([])
+                
+        except Exception as e:
+            logger.error(f"Error in daily screening: {e}", exc_info=True)
+            await self.telegram_bot.send_alert(
+                "Screening Error",
+                f"Error during daily screening: {str(e)}",
+                "ERROR"
+            )

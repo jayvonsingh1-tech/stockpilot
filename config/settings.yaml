@@ -1,0 +1,129 @@
+# StockPilot Configuration File
+
+# Trading Mode
+mode: signal_only  # Options: signal_only, paper, live
+
+# Market Settings
+markets:
+  - LSE    # London Stock Exchange
+  - NASDAQ # US NASDAQ
+  - NYSE   # US New York Stock Exchange
+
+# Data Fetching
+data:
+  primary_source: yfinance
+  backup_source: alpha_vantage
+  update_interval_minutes: 1  # During market hours
+  timeframes:
+    - 1min
+    - 5min
+    - 15min
+    - 1h
+    - 1d
+    - 1wk
+
+# Signal Generation
+signals:
+  min_confidence: 80  # Minimum confidence percentage to send signal (TEMPORARILY LOWERED FOR TESTING)
+  high_confidence: 92  # Threshold for larger position sizes
+  max_concurrent_positions: 5
+  
+# Risk Management
+risk:
+  max_risk_per_trade_percent: 2.0  # Max % of portfolio to risk per trade
+  daily_loss_limit_percent: 3.0    # Stop trading if down this % in a day
+  max_sector_exposure: 2           # Max positions in same sector
+  min_risk_reward_ratio: 2.0       # Minimum risk/reward ratio
+  
+# Position Sizing
+position:
+  method: kelly_criterion  # Options: kelly_criterion, fixed_percent
+  kelly_fraction: 0.5      # Conservative half-Kelly
+  
+# Weekly Return Optimization
+weekly:
+  target_return_percent: 5.0
+  enable_optimization: true
+  min_confidence_floor: 80  # Never drop below this even when optimizing
+  
+# Technical Analysis
+technical:
+  indicators:
+    - RSI
+    - MACD
+    - BollingerBands
+    - EMA_20
+    - EMA_50
+    - SMA_200
+    - ATR
+    - Stochastic
+    - VWAP
+    - ADX
+    - OBV
+    - Fibonacci
+    - PivotPoints
+    - IchimokuCloud
+    - VolumeProfile
+
+# Strategies
+strategies:
+  enabled:
+    - trend_following
+    - mean_reversion
+    - breakout
+    - value_catalyst
+  weights:
+    trend_following: 0.30
+    mean_reversion: 0.25
+    breakout: 0.25
+    value_catalyst: 0.20
+
+# Telegram Settings
+telegram:
+  enabled: true
+  bot_token: "8958499441:AAEzG-ZZslPl7wG6oF_Do8ZNUib-ENJ9kBI"
+  chat_id: "7685898212"
+  send_daily_summary: true
+  send_weekly_report: true
+  weekly_report_day: sunday
+  weekly_report_time: "18:00"
+
+# AI Assistant Settings
+ai_assistant:
+  enabled: true
+  provider: ollama  # Options: ollama, claude, openai
+  model: llama3     # For ollama
+  api_key: ""       # For claude/openai (optional)
+  
+# Database
+database:
+  type: sqlite  # Options: sqlite, postgresql
+  path: data/stockpilot.db
+  
+# Logging
+logging:
+  level: INFO  # Options: DEBUG, INFO, WARNING, ERROR
+  file: logs/stockpilot.log
+  max_size_mb: 100
+  backup_count: 5
+
+# Backtesting
+backtest:
+  enabled: false
+  start_date: "2024-01-01"
+  end_date: "2024-12-31"
+  initial_capital: 10000
+
+# Paper Trading
+paper:
+  initial_capital: 10000
+  commission_percent: 0.0  # Trading 212 is commission-free
+  slippage_percent: 0.1    # Realistic slippage
+
+# Learning System
+learning:
+  enabled: true
+  retrain_after_signals: 50
+  retrain_interval_days: 7
+  backtest_before_apply: true
+  keep_model_versions: 10
