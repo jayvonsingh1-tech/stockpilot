@@ -14,6 +14,7 @@ from src.data.fetcher import MarketDataFetcher
 from src.analysis.technical import TechnicalAnalysis
 from src.notifications.telegram_bot import create_bot
 from src.engine.signals import SignalGenerator
+from src.scheduler import SignalScheduler
 
 
 logger = setup_logger("stockpilot")
@@ -40,6 +41,7 @@ class StockPilot:
         self.technical_analysis = TechnicalAnalysis()
         self.telegram_bot = None
         self.signal_generator = SignalGenerator()
+        self.scheduler = None
         
         # Load watchlist
         self.watchlist = self.config.load_watchlist()
@@ -68,8 +70,10 @@ class StockPilot:
             # Send startup message
             await self.telegram_bot.send_alert(
                 "StockPilot Started",
-                f"Bot is now running in {self.config.get('mode', 'signal_only')} mode. "
-                f"Monitoring {len(self.watchlist)} stocks.",
+                f"🚀 Bot is now running in {self.config.get('mode', 'signal_only')} mode.\n"
+                f"📊 Monitoring {len(self.watchlist)} stocks.\n"
+                f"🎯 Min Confidence: {self.config.get('signals.min_confidence', 85)}%\n"
+                f"⏰ Scanning every 15 minutes during market hours.",
                 "INFO"
             )
             
@@ -114,7 +118,7 @@ class StockPilot:
     
     async def scan_and_send_signals(self):
         """Scan watchlist for trading signals and send via Telegram"""
-        logger.info("\nScanning watchlist for trading signals...")
+        logger.info("\nInitial scan of watchlist...")
         logger.info("-" * 60)
         
         # Get watchlist tickers
@@ -134,7 +138,7 @@ class StockPilot:
                     await self.telegram_bot.send_signal(signal)
                     logger.info("Signal sent to Telegram")
         else:
-            logger.info("No signals found meeting 85% confidence threshold")
+            logger.info(f"No signals found meeting {self.config.get('signals.min_confidence', 85)}% confidence threshold")
         
         logger.info("-" * 60)
     
@@ -147,25 +151,47 @@ class StockPilot:
             # Test data fetching
             await self.test_data_fetch()
             
-            # Scan for signals
+            # Initial scan for signals
             await self.scan_and_send_signals()
             
             logger.info("\n" + "=" * 60)
-            logger.info("Phase 2 Complete - Signal Generation Active!")
-            logger.info("=" * 60)
-            logger.info("\nThe bot is now scanning for trading signals.")
-            logger.info("Signals meeting 85% confidence will be sent to Telegram.")
-            logger.info("\nPress Ctrl+C to stop")
+            logger.info("Initial Scan Complete - Starting Scheduler")
             logger.info("=" * 60)
             
-            # Keep running
-            while True:
-                await asyncio.sleep(60)
+            # Initialize and start scheduler
+            if self.telegram_bot:
+                self.scheduler = SignalScheduler(
+                    self.signal_generator,
+                    self.telegram_bot,
+                    self.watchlist
+                )
+                self.scheduler.start()
+                
+                logger.info("\n" + "=" * 60)
+                logger.info("✅ StockPilot is now running!")
+                logger.info("=" * 60)
+                logger.info(f"\n🎯 Min Confidence: {self.config.get('signals.min_confidence', 85)}%")
+                logger.info(f"📊 Monitoring: {len(self.watchlist)} stocks")
+                logger.info(f"⏰ Scanning: Every 15 minutes (market hours)")
+                logger.info(f"📱 Telegram: Active")
+                logger.info("\nPress Ctrl+C to stop")
+                logger.info("=" * 60)
+                
+                # Keep running forever
+                while True:
+                    await asyncio.sleep(60)
+            else:
+                logger.warning("Telegram bot not initialized - scheduler not started")
+                logger.info("Please configure Telegram credentials in config/settings.yaml")
                 
         except KeyboardInterrupt:
             logger.info("\nShutting down StockPilot...")
+            if self.scheduler:
+                self.scheduler.stop()
         except Exception as e:
             logger.error(f"Error in main loop: {e}", exc_info=True)
+            if self.scheduler:
+                self.scheduler.stop()
         finally:
             logger.info("StockPilot stopped")
 
