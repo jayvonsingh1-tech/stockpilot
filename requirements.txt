@@ -1,15 +1,12 @@
 # StockPilot Requirements
 
-# Core dependencies
-python>=3.11
-
 # Data fetching
 yfinance>=0.2.40
 pandas>=2.2.0
 numpy>=1.26.0
 
 # Technical analysis
-ta-lib>=0.4.28  # Note: Requires TA-Lib C library to be installed first
+# ta-lib>=0.4.28  # Commented out - requires C library, causes build issues on Railway
 
 # Telegram bot
 python-telegram-bot>=21.0
@@ -24,11 +21,11 @@ apscheduler>=3.10.0
 pytz>=2024.1
 python-dateutil>=2.9.0
 
-# Database (for future phases)
+# Database
 sqlalchemy>=2.0.30
 
 # Logging
 colorlog>=6.8.2
 
 # Optional: For better performance
-numba>=0.59.0
+# numba>=0.59.0  # Commented out - can cause build issues
