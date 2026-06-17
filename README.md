@@ -280,3 +280,5 @@ For issues or questions during development, refer to the architecture plan at `p
 ---
 
 **Built with ❤️ for reliable, high-confidence trading signals.**
+#   s t o c k p i l o t 0 1  
+ 
