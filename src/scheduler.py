@@ -6,6 +6,7 @@ from datetime import datetime, time
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
+import pytz
 from .engine.signals import SignalGenerator
 from .notifications.telegram_bot import TelegramBot
 from .analysis.screener import StockScreener
@@ -33,72 +34,78 @@ class SignalScheduler:
         self.telegram_bot = telegram_bot
         self.watchlist = watchlist
         self.config = get_config()
-        self.scheduler = AsyncIOScheduler()
+        # Set timezone to US Eastern Time for market hours
+        self.timezone = pytz.timezone('America/New_York')
+        self.scheduler = AsyncIOScheduler(timezone=self.timezone)
         self.stock_screener = StockScreener()
         self.research_generator = ResearchReportGenerator()
         
         # Market hours (adjust for your timezone)
-        self.market_open = time(9, 30)  # 9:30 AM
-        self.market_close = time(16, 0)  # 4:00 PM
+        self.market_open = time(9, 30)  # 9:30 AM ET
+        self.market_close = time(16, 0)  # 4:00 PM ET
         
     def start(self):
         """Start the scheduler"""
         logger.info("Starting signal scheduler...")
+        logger.info(f"Scheduler timezone: {self.timezone}")
         
-        # Schedule market open scan (US: 9:30 AM ET, UK: 8:00 AM GMT)
+        # UK timezone for LSE
+        uk_tz = pytz.timezone('Europe/London')
+        
+        # LSE Market Hours (8:00 AM - 4:30 PM UK)
+        # Scan every 15 minutes during LSE hours
+        self.scheduler.add_job(
+            self._periodic_scan,
+            CronTrigger(hour='8-16', minute='0,15,30,45', day_of_week='mon-fri', timezone=uk_tz),
+            id='lse_scan',
+            name='LSE 15-Minute Scan'
+        )
+        
+        # US Market Hours (9:30 AM - 4:00 PM ET = 2:30 PM - 9:00 PM UK)
+        # Schedule market open scan (9:30 AM ET)
         self.scheduler.add_job(
             self._market_open_scan,
-            CronTrigger(hour=9, minute=30, day_of_week='mon-fri'),
-            id='market_open_scan',
-            name='Market Open Scan'
+            CronTrigger(hour=9, minute=30, day_of_week='mon-fri', timezone=self.timezone),
+            id='us_market_open',
+            name='US Market Open Scan'
         )
         
-        # Schedule 15-minute scans during market hours (9:30 AM - 4:00 PM ET)
-        # This will scan at :00, :15, :30, :45 of each hour
+        # Schedule 15-minute scans during US market hours (9:30 AM - 4:00 PM ET)
         self.scheduler.add_job(
             self._periodic_scan,
-            CronTrigger(hour='9-15', minute='0,15,30,45', day_of_week='mon-fri'),
-            id='periodic_scan',
-            name='15-Minute Scan'
+            CronTrigger(hour='9-15', minute='0,15,30,45', day_of_week='mon-fri', timezone=self.timezone),
+            id='us_periodic_scan',
+            name='US 15-Minute Scan'
         )
         
-        # Additional scan at 9:45 to catch early moves
-        self.scheduler.add_job(
-            self._periodic_scan,
-            CronTrigger(hour=9, minute=45, day_of_week='mon-fri'),
-            id='early_scan',
-            name='Early Market Scan'
-        )
-        
-        # Schedule market close scan (4:00 PM ET)
+        # US market close scan (4:00 PM ET)
         self.scheduler.add_job(
             self._market_close_scan,
-            CronTrigger(hour=16, minute=0, day_of_week='mon-fri'),
-            id='market_close_scan',
-            name='Market Close Scan'
+            CronTrigger(hour=16, minute=0, day_of_week='mon-fri', timezone=self.timezone),
+            id='us_market_close',
+            name='US Market Close Scan'
         )
         
-        # Schedule daily summary after all markets closed (9:30 PM UK / 4:30 PM ET)
-        # This gives 30 minutes after US market close for final processing
+        # Schedule daily summary after all markets closed (4:30 PM ET)
         self.scheduler.add_job(
             self._send_daily_summary,
-            CronTrigger(hour=21, minute=30, day_of_week='mon-fri'),
+            CronTrigger(hour=16, minute=30, day_of_week='mon-fri', timezone=self.timezone),
             id='daily_summary',
             name='Daily Summary'
         )
         
-        # Schedule weekly report (Sunday evening)
+        # Schedule weekly report (Sunday evening 6PM ET)
         self.scheduler.add_job(
             self._send_weekly_report,
-            CronTrigger(day_of_week='sun', hour=18, minute=0),
+            CronTrigger(day_of_week='sun', hour=18, minute=0, timezone=self.timezone),
             id='weekly_report',
             name='Weekly Report'
         )
         
-        # Schedule daily stock screening (8:00 AM before market open)
+        # Schedule daily stock screening (8:00 AM ET before market open)
         self.scheduler.add_job(
             self._run_daily_screening,
-            CronTrigger(hour=8, minute=0, day_of_week='mon-fri'),
+            CronTrigger(hour=8, minute=0, day_of_week='mon-fri', timezone=self.timezone),
             id='daily_screening',
             name='Daily Stock Screening'
         )
