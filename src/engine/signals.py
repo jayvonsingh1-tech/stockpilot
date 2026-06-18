@@ -5,9 +5,11 @@ from typing import Dict, List, Optional
 import pandas as pd
 from ..data.fetcher import MarketDataFetcher
 from ..analysis.technical import TechnicalAnalysis
+from ..analysis.fundamental import FundamentalAnalysis
 from ..strategies.trend_following import TrendFollowingStrategy
 from ..strategies.mean_reversion import MeanReversionStrategy
 from ..strategies.breakout import BreakoutStrategy
+from ..strategies.value_investment import ValueInvestmentStrategy
 from .criteria import CriteriaChecker
 from .risk import RiskManager
 from ..utils.logger import setup_logger
@@ -26,14 +28,16 @@ class SignalGenerator:
         self.config = get_config()
         self.data_fetcher = MarketDataFetcher()
         self.ta = TechnicalAnalysis()
+        self.fa = FundamentalAnalysis()
         self.criteria_checker = CriteriaChecker()
         self.risk_manager = risk_manager or RiskManager()
         
-        # Initialize strategies
+        # Initialize strategies (including value investment)
         self.strategies = [
             TrendFollowingStrategy(),
             MeanReversionStrategy(),
-            BreakoutStrategy()
+            BreakoutStrategy(),
+            ValueInvestmentStrategy()
         ]
         
         self.min_confidence = self.config.get('signals.min_confidence', 80)

@@ -1,20 +1,23 @@
 """
 Telegram bot for sending signals and notifications
+Enhanced with interactive commands and trade tracking
 """
 import asyncio
+import re
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from datetime import datetime
 from ..utils.logger import setup_logger
 from ..utils.config import get_config
+from ..engine.trade_database import TradeDatabase
 
 
 logger = setup_logger(__name__)
 
 
 class TelegramBot:
-    """Telegram bot for StockPilot"""
+    """Telegram bot for StockPilot with interactive features"""
     
     def __init__(self, token: str, chat_id: str):
         """
@@ -28,6 +31,8 @@ class TelegramBot:
         self.chat_id = chat_id
         self.bot = None
         self.application = None
+        self.db = TradeDatabase()
+        self.last_signal = None  # Store last signal for confirmation
         
     async def initialize(self):
         """Initialize the bot"""
@@ -39,6 +44,15 @@ class TelegramBot:
             self.application.add_handler(CommandHandler("start", self.cmd_start))
             self.application.add_handler(CommandHandler("status", self.cmd_status))
             self.application.add_handler(CommandHandler("help", self.cmd_help))
+            self.application.add_handler(CommandHandler("trades", self.cmd_trades))
+            self.application.add_handler(CommandHandler("portfolio", self.cmd_portfolio))
+            self.application.add_handler(CommandHandler("performance", self.cmd_performance))
+            self.application.add_handler(CommandHandler("research", self.cmd_research))
+            
+            # Add message handler for text messages (trade confirmations, etc.)
+            self.application.add_handler(
+                MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
+            )
             
             logger.info("Telegram bot initialized successfully")
         except Exception as e:
@@ -81,6 +95,28 @@ class TelegramBot:
         Returns:
             True if sent successfully
         """
+        try:
+            # Store signal for potential confirmation
+            self.last_signal = signal
+            
+            # Save signal to database
+            signal_id = self.db.save_signal(signal)
+            signal['signal_id'] = signal_id
+            
+            # Check if it's a long-term investment or CFD trade
+            is_long_term = signal.get('trading_type') == 'LONG_TERM_INVESTMENT'
+            
+            if is_long_term:
+                return await self._send_long_term_signal(signal)
+            else:
+                return await self._send_cfd_signal(signal)
+            
+        except Exception as e:
+            logger.error(f"Error sending signal: {e}")
+            return False
+    
+    async def _send_cfd_signal(self, signal: Dict) -> bool:
+        """Send CFD trading signal (existing format)"""
         try:
             action_emoji = "🟢" if signal['action'] == 'BUY' else "🔴"
             action_word = "BUY" if signal['action'] == 'BUY' else "SELL"
@@ -318,10 +354,170 @@ Have a great weekend! 🚀
             "🤖 *StockPilot Commands*\n\n"
             "/start - Start the bot\n"
             "/status - Check bot status\n"
-            "/help - Show this help message\n\n"
-            "More commands coming in future phases!",
+            "/help - Show this help message\n"
+            "/trades - Show open trades\n"
+            "/portfolio - Portfolio summary\n"
+            "/performance - Performance stats\n"
+            "/research - Get company research\n\n"
+            "Reply with ticker symbols for quick info!",
             parse_mode="Markdown"
         )
+    
+    async def cmd_trades(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /trades command - show all open trades"""
+        trades = self.db.get_open_trades()
+        
+        if not trades:
+            await update.message.reply_text(
+                "📊 *Open Trades*\n\nNo open trades at the moment.\n\n"
+                "Wait for signals or use /help for commands.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        message = "📊 *OPEN TRADES*\n\n"
+        
+        for trade in trades:
+            # Get current price
+            from ..data.fetcher import MarketDataFetcher
+            fetcher = MarketDataFetcher()
+            current_price = fetcher.get_current_price(trade['ticker'])
+            
+            if current_price:
+                # Calculate P&L
+                if trade['action'] == 'BUY':
+                    pnl = (current_price - trade['entry_price']) * trade['shares']
+                else:
+                    pnl = (trade['entry_price'] - current_price) * trade['shares']
+                
+                pnl_percent = (pnl / trade['total_investment']) * 100
+                
+                message += f"{'🟢' if pnl > 0 else '🔴'} *{trade['ticker']}*\n"
+                message += f"• Entry: ${trade['entry_price']:.2f} → ${current_price:.2f}\n"
+                message += f"• P&L: ${pnl:+,.2f} ({pnl_percent:+.1f}%)\n"
+                message += f"• Days: {trade.get('days_held', 0)}\n\n"
+        
+        message += f"Total: {len(trades)} open position(s)\n"
+        message += f"\nReply 'status TICKER' for details"
+        
+        await update.message.reply_text(message, parse_mode="Markdown")
+    
+    async def cmd_portfolio(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /portfolio command - show portfolio summary"""
+        trades = self.db.get_open_trades()
+        stats = self.db.get_performance_stats()
+        
+        total_value = 0
+        total_pnl = 0
+        
+        # Calculate current portfolio value
+        from ..data.fetcher import MarketDataFetcher
+        fetcher = MarketDataFetcher()
+        
+        for trade in trades:
+            current_price = fetcher.get_current_price(trade['ticker'])
+            if current_price:
+                if trade['action'] == 'BUY':
+                    pnl = (current_price - trade['entry_price']) * trade['shares']
+                else:
+                    pnl = (trade['entry_price'] - current_price) * trade['shares']
+                
+                total_value += current_price * trade['shares']
+                total_pnl += pnl
+        
+        message = f"""
+📊 *PORTFOLIO SUMMARY*
+
+💰 *Current Positions*
+• Open Trades: {len(trades)}
+• Total Value: ${total_value:,.2f}
+• Unrealized P&L: ${total_pnl:+,.2f}
+
+📈 *All-Time Performance*
+• Total Trades: {stats.get('total_trades', 0)}
+• Win Rate: {stats.get('win_rate', 0):.1f}%
+• Total P&L: ${stats.get('total_pnl', 0):+,.2f}
+• Avg Profit: ${stats.get('avg_profit', 0):.2f}
+• Avg Loss: ${stats.get('avg_loss', 0):.2f}
+
+Use /trades to see open positions
+Use /performance for detailed stats
+"""
+        
+        await update.message.reply_text(message, parse_mode="Markdown")
+    
+    async def cmd_performance(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /performance command - show detailed performance stats"""
+        stats = self.db.get_performance_stats()
+        
+        message = f"""
+📈 *PERFORMANCE ANALYTICS*
+
+🎯 *Trading Statistics*
+• Total Trades: {stats.get('total_trades', 0)}
+• Winning Trades: {stats.get('winning_trades', 0)}
+• Losing Trades: {stats.get('losing_trades', 0)}
+• Win Rate: {stats.get('win_rate', 0):.1f}%
+
+💰 *Profit & Loss*
+• Total P&L: ${stats.get('total_pnl', 0):+,.2f}
+• Average Profit: ${stats.get('avg_profit', 0):.2f}
+• Average Loss: ${stats.get('avg_loss', 0):.2f}
+• Best Trade: ${stats.get('best_trade', 0):+,.2f}
+• Worst Trade: ${stats.get('worst_trade', 0):+,.2f}
+
+📊 *Risk Metrics*
+• Profit Factor: {stats.get('profit_factor', 0):.2f}
+• Average Hold Time: {stats.get('avg_hold_days', 0):.1f} days
+
+Use /portfolio for current positions
+"""
+        
+        await update.message.reply_text(message, parse_mode="Markdown")
+    
+    async def cmd_research(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /research command - get company research"""
+        if not context.args:
+            await update.message.reply_text(
+                "📊 *Company Research*\n\n"
+                "Usage: /research TICKER\n"
+                "Example: /research AAPL\n\n"
+                "Get detailed fundamental analysis and AI-powered insights.",
+                parse_mode="Markdown"
+            )
+            return
+        
+        ticker = context.args[0].upper()
+        await update.message.reply_text(f"🔍 Researching {ticker}... This may take a moment.")
+        
+        try:
+            from ..analysis.research import ResearchAnalyst
+            analyst = ResearchAnalyst()
+            report = analyst.generate_report(ticker)
+            
+            if report:
+                # Send condensed version via Telegram
+                message = f"""
+📊 *{report['company_name']}* ({ticker})
+
+💼 *Sector:* {report.get('sector', 'N/A')}
+
+📈 *Financial Health:* {report.get('financial_health_score', 0)}/100
+{report.get('financial_health_summary', '')}
+
+💰 *Valuation:* {report.get('valuation_summary', 'N/A')}
+
+🎯 *Bot Assessment:* {report.get('bot_recommendation', 'N/A')}
+*Overall Score:* {report.get('overall_score', 0)}/100
+
+{report.get('action_recommendation', '')}
+"""
+                await update.message.reply_text(message, parse_mode="Markdown")
+            else:
+                await update.message.reply_text(f"❌ Could not generate research report for {ticker}")
+        except Exception as e:
+            logger.error(f"Error in research command: {e}")
+            await update.message.reply_text(f"❌ Error researching {ticker}: {str(e)}")
     
     async def send_screening_results(self, candidates: list) -> bool:
         """
