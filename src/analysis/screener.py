@@ -5,6 +5,8 @@ from typing import Dict, List, Optional
 import pandas as pd
 import yfinance as yf
 from datetime import datetime, timedelta
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from ..data.fetcher import MarketDataFetcher
 from ..analysis.technical import TechnicalAnalysis
 from ..utils.logger import setup_logger
@@ -66,39 +68,11 @@ class StockScreener:
         
         candidates = []
         total_stocks = len(self.us_stocks) + len(self.uk_stocks)
-        processed = 0
+        all_tickers = self.us_stocks + self.uk_stocks
         
-        # Screen US stocks
-        logger.info(f"Screening {len(self.us_stocks)} US stocks...")
-        for i, ticker in enumerate(self.us_stocks, 1):
-            try:
-                processed += 1
-                if i % 10 == 0:  # Progress update every 10 stocks
-                    logger.info(f"Progress: {processed}/{total_stocks} stocks ({(processed/total_stocks)*100:.1f}%)")
-                
-                score = self._evaluate_stock(ticker)
-                if score and score['total_score'] >= 70:  # Minimum 70/100 score
-                    candidates.append(score)
-                    logger.info(f"✓ {ticker}: {score['total_score']:.1f}/100 - {score['recommendation']}")
-            except Exception as e:
-                logger.debug(f"Error screening {ticker}: {e}")
-                continue
-        
-        # Screen UK stocks
-        logger.info(f"\nScreening {len(self.uk_stocks)} UK stocks...")
-        for i, ticker in enumerate(self.uk_stocks, 1):
-            try:
-                processed += 1
-                if i % 5 == 0:  # Progress update every 5 stocks
-                    logger.info(f"Progress: {processed}/{total_stocks} stocks ({(processed/total_stocks)*100:.1f}%)")
-                
-                score = self._evaluate_stock(ticker)
-                if score and score['total_score'] >= 70:
-                    candidates.append(score)
-                    logger.info(f"✓ {ticker}: {score['total_score']:.1f}/100 - {score['recommendation']}")
-            except Exception as e:
-                logger.debug(f"Error screening {ticker}: {e}")
-                continue
+        # Screen stocks concurrently with rate limiting
+        logger.info(f"Screening {total_stocks} stocks (US: {len(self.us_stocks)}, UK: {len(self.uk_stocks)})...")
+        candidates = self._screen_concurrent(all_tickers, max_workers=5)
         
         # Sort by total score
         candidates.sort(key=lambda x: x['total_score'], reverse=True)
@@ -111,6 +85,53 @@ class StockScreener:
         logger.info("=" * 60)
         
         return top_candidates
+    
+    def _screen_concurrent(self, tickers: List[str], max_workers: int = 5) -> List[Dict]:
+        """
+        Screen stocks concurrently with rate limiting
+        
+        Args:
+            tickers: List of tickers to screen
+            max_workers: Maximum concurrent workers
+            
+        Returns:
+            List of candidate stocks
+        """
+        candidates = []
+        processed = 0
+        total = len(tickers)
+        
+        def evaluate_with_delay(ticker: str) -> Optional[Dict]:
+            """Evaluate stock with rate limiting delay"""
+            time.sleep(0.3)  # Rate limiting: ~3 requests per second
+            return self._evaluate_stock(ticker)
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks
+            future_to_ticker = {
+                executor.submit(evaluate_with_delay, ticker): ticker
+                for ticker in tickers
+            }
+            
+            # Process completed tasks
+            for future in as_completed(future_to_ticker):
+                ticker = future_to_ticker[future]
+                processed += 1
+                
+                # Progress update
+                if processed % 10 == 0:
+                    logger.info(f"Progress: {processed}/{total} stocks ({(processed/total)*100:.1f}%)")
+                
+                try:
+                    score = future.result(timeout=30)  # 30 second timeout per stock
+                    if score and score['total_score'] >= 70:
+                        candidates.append(score)
+                        logger.info(f"✓ {ticker}: {score['total_score']:.1f}/100 - {score['recommendation']}")
+                except Exception as e:
+                    logger.debug(f"Error screening {ticker}: {e}")
+        
+        logger.info(f"Screening complete: {len(candidates)} candidates found")
+        return candidates
     
     def _evaluate_stock(self, ticker: str) -> Optional[Dict]:
         """
@@ -129,9 +150,13 @@ class StockScreener:
                 logger.debug(f"Insufficient data for {ticker}: {len(df) if df is not None else 0} candles")
                 return None
             
-            # Get full stock info from yfinance
-            stock = yf.Ticker(ticker)
-            info = stock.info
+            # Get full stock info from yfinance with timeout protection
+            try:
+                stock = yf.Ticker(ticker)
+                info = stock.info
+            except Exception as e:
+                logger.debug(f"Error fetching info for {ticker}: {e}")
+                return None
             
             if not info or 'longName' not in info:
                 logger.debug(f"No info available for {ticker}")

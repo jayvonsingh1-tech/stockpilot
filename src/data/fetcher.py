@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import time
+from collections import OrderedDict
 from ..utils.logger import setup_logger
 from ..utils.helpers import get_market_for_ticker
 
@@ -18,8 +19,9 @@ class MarketDataFetcher:
     
     def __init__(self):
         """Initialize the market data fetcher"""
-        self.cache = {}
+        self.cache = OrderedDict()
         self.cache_duration = 60  # Cache data for 60 seconds
+        self.max_cache_size = 100  # Maximum cache entries
         
     def fetch_ohlcv(self, ticker: str, period: str = "1d", 
                      interval: str = "1h") -> Optional[pd.DataFrame]:
@@ -35,6 +37,9 @@ class MarketDataFetcher:
             DataFrame with OHLCV data or None if error
         """
         cache_key = f"{ticker}_{period}_{interval}"
+        
+        # Clean expired cache entries
+        self._clean_cache()
         
         # Check cache
         if cache_key in self.cache:
@@ -200,6 +205,25 @@ class MarketDataFetcher:
         """
         df = self.fetch_ohlcv(ticker, period='1d', interval='1h')
         return df is not None and not df.empty
+    
+    def _clean_cache(self):
+        """Remove expired and excess cache entries"""
+        now = time.time()
+        
+        # Remove expired entries
+        expired_keys = [
+            k for k, (_, cached_time) in self.cache.items()
+            if now - cached_time > self.cache_duration
+        ]
+        for key in expired_keys:
+            del self.cache[key]
+        
+        # Remove oldest entries if over limit
+        while len(self.cache) > self.max_cache_size:
+            self.cache.popitem(last=False)  # Remove oldest (FIFO)
+        
+        if expired_keys:
+            logger.debug(f"Cleaned {len(expired_keys)} expired cache entries")
     
     def clear_cache(self):
         """Clear the data cache"""

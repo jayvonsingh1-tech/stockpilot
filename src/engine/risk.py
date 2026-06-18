@@ -196,6 +196,11 @@ class RiskManager:
             reward = abs(target - entry)
             
             if risk == 0:
+                logger.warning(f"Zero risk detected for {signal.get('ticker', 'unknown')}")
+                return False
+            
+            if reward == 0:
+                logger.warning(f"Zero reward detected for {signal.get('ticker', 'unknown')}")
                 return False
             
             rr_ratio = reward / risk

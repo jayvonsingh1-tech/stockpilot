@@ -84,6 +84,12 @@ class SignalGenerator:
                 if signal:
                     # Add confidence score
                     confidence = self._calculate_confidence(signal, df)
+                    
+                    # Validate confidence score
+                    if confidence is None or confidence < 0:
+                        logger.warning(f"Invalid confidence score for {ticker}: {confidence}")
+                        continue
+                    
                     signal['confidence'] = confidence
                     
                     # Check if meets minimum confidence
