@@ -533,10 +533,469 @@ watchlist:
     notes: "Derivatives exchange"
     priority: low
 
+  # Additional High-Quality Stocks - 75 more (Total: 150)
+  
+  # Software & Cloud (15)
+  - ticker: NOW
+    name: ServiceNow Inc
+    market: NYSE
+    sector: Technology
+    priority: high
+    
+  - ticker: SNOW
+    name: Snowflake Inc
+    market: NYSE
+    sector: Technology
+    priority: high
+    
+  - ticker: DDOG
+    name: Datadog Inc
+    market: NASDAQ
+    sector: Technology
+    priority: high
+    
+  - ticker: NET
+    name: Cloudflare Inc
+    market: NYSE
+    sector: Technology
+    priority: high
+    
+  - ticker: ZS
+    name: Zscaler Inc
+    market: NASDAQ
+    sector: Technology
+    priority: high
+    
+  - ticker: CRWD
+    name: CrowdStrike Holdings
+    market: NASDAQ
+    sector: Technology
+    priority: high
+    
+  - ticker: PANW
+    name: Palo Alto Networks
+    market: NASDAQ
+    sector: Technology
+    priority: high
+    
+  - ticker: FTNT
+    name: Fortinet Inc
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: WDAY
+    name: Workday Inc
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: TEAM
+    name: Atlassian Corporation
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: ZM
+    name: Zoom Video Communications
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: DOCU
+    name: DocuSign Inc
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: TWLO
+    name: Twilio Inc
+    market: NYSE
+    sector: Technology
+    priority: medium
+    
+  - ticker: OKTA
+    name: Okta Inc
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: VEEV
+    name: Veeva Systems
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+  
+  # Semiconductors (10)
+  - ticker: KLAC
+    name: KLA Corporation
+    market: NASDAQ
+    sector: Technology
+    priority: high
+    
+  - ticker: MCHP
+    name: Microchip Technology
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: NXPI
+    name: NXP Semiconductors
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: MRVL
+    name: Marvell Technology
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: ON
+    name: ON Semiconductor
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: SWKS
+    name: Skyworks Solutions
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: QRVO
+    name: Qorvo Inc
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: MPWR
+    name: Monolithic Power Systems
+    market: NASDAQ
+    sector: Technology
+    priority: medium
+    
+  - ticker: ENTG
+    name: Entegris Inc
+    market: NASDAQ
+    sector: Technology
+    priority: low
+    
+  - ticker: WOLF
+    name: Wolfspeed Inc
+    market: NYSE
+    sector: Technology
+    priority: medium
+  
+  # Financial Services (10)
+  - ticker: ICE
+    name: Intercontinental Exchange
+    market: NYSE
+    sector: Financial Services
+    priority: high
+    
+  - ticker: COF
+    name: Capital One Financial
+    market: NYSE
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: USB
+    name: U.S. Bancorp
+    market: NYSE
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: PNC
+    name: PNC Financial Services
+    market: NYSE
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: TFC
+    name: Truist Financial
+    market: NYSE
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: BK
+    name: Bank of New York Mellon
+    market: NYSE
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: STT
+    name: State Street Corporation
+    market: NYSE
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: TROW
+    name: T. Rowe Price Group
+    market: NASDAQ
+    sector: Financial Services
+    priority: medium
+    
+  - ticker: BEN
+    name: Franklin Resources
+    market: NYSE
+    sector: Financial Services
+    priority: low
+    
+  - ticker: IVZ
+    name: Invesco Ltd
+    market: NYSE
+    sector: Financial Services
+    priority: low
+  
+  # Healthcare & Biotech (15)
+  - ticker: CVS
+    name: CVS Health Corporation
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: CI
+    name: Cigna Corporation
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: HUM
+    name: Humana Inc
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: GILD
+    name: Gilead Sciences
+    market: NASDAQ
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: REGN
+    name: Regeneron Pharmaceuticals
+    market: NASDAQ
+    sector: Healthcare
+    priority: high
+    
+  - ticker: VRTX
+    name: Vertex Pharmaceuticals
+    market: NASDAQ
+    sector: Healthcare
+    priority: high
+    
+  - ticker: ISRG
+    name: Intuitive Surgical
+    market: NASDAQ
+    sector: Healthcare
+    priority: high
+    
+  - ticker: SYK
+    name: Stryker Corporation
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: BSX
+    name: Boston Scientific
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: EW
+    name: Edwards Lifesciences
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: ZTS
+    name: Zoetis Inc
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: IDXX
+    name: IDEXX Laboratories
+    market: NASDAQ
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: A
+    name: Agilent Technologies
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: IQV
+    name: IQVIA Holdings
+    market: NYSE
+    sector: Healthcare
+    priority: medium
+    
+  - ticker: MTD
+    name: Mettler-Toledo International
+    market: NYSE
+    sector: Healthcare
+    priority: low
+  
+  # Consumer & Retail (10)
+  - ticker: BKNG
+    name: Booking Holdings
+    market: NASDAQ
+    sector: Consumer Cyclical
+    priority: high
+    
+  - ticker: MAR
+    name: Marriott International
+    market: NASDAQ
+    sector: Consumer Cyclical
+    priority: medium
+    
+  - ticker: YUM
+    name: Yum! Brands
+    market: NYSE
+    sector: Consumer Cyclical
+    priority: medium
+    
+  - ticker: CMG
+    name: Chipotle Mexican Grill
+    market: NYSE
+    sector: Consumer Cyclical
+    priority: high
+    
+  - ticker: LULU
+    name: Lululemon Athletica
+    market: NASDAQ
+    sector: Consumer Cyclical
+    priority: high
+    
+  - ticker: ULTA
+    name: Ulta Beauty
+    market: NASDAQ
+    sector: Consumer Cyclical
+    priority: medium
+    
+  - ticker: DG
+    name: Dollar General
+    market: NYSE
+    sector: Consumer Defensive
+    priority: medium
+    
+  - ticker: DLTR
+    name: Dollar Tree
+    market: NASDAQ
+    sector: Consumer Defensive
+    priority: medium
+    
+  - ticker: ROST
+    name: Ross Stores
+    market: NASDAQ
+    sector: Consumer Cyclical
+    priority: medium
+    
+  - ticker: ORLY
+    name: O'Reilly Automotive
+    market: NASDAQ
+    sector: Consumer Cyclical
+    priority: medium
+  
+  # Materials & Industrials (10)
+  - ticker: LIN
+    name: Linde PLC
+    market: NYSE
+    sector: Materials
+    priority: high
+    
+  - ticker: APD
+    name: Air Products and Chemicals
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: ECL
+    name: Ecolab Inc
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: SHW
+    name: Sherwin-Williams
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: DD
+    name: DuPont de Nemours
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: DOW
+    name: Dow Inc
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: NEM
+    name: Newmont Corporation
+    market: NYSE
+    sector: Materials
+    priority: low
+    
+  - ticker: FCX
+    name: Freeport-McMoRan
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: NUE
+    name: Nucor Corporation
+    market: NYSE
+    sector: Materials
+    priority: medium
+    
+  - ticker: STLD
+    name: Steel Dynamics
+    market: NASDAQ
+    sector: Materials
+    priority: medium
+  
+  # UK Additional Stocks (5)
+  - ticker: EXPN.L
+    name: Experian PLC
+    market: LSE
+    sector: Technology
+    priority: high
+    
+  - ticker: FLTR.L
+    name: Flutter Entertainment
+    market: LSE
+    sector: Consumer Cyclical
+    priority: medium
+    
+  - ticker: INF.L
+    name: Informa PLC
+    market: LSE
+    sector: Communication Services
+    priority: medium
+    
+  - ticker: OCDO.L
+    name: Ocado Group
+    market: LSE
+    sector: Consumer Defensive
+    priority: medium
+    
+  - ticker: SBRY.L
+    name: Sainsbury's
+    market: LSE
+    sector: Consumer Defensive
+    priority: low
+
 # Priority levels:
 # - high: Monitor closely, alert on any significant movement
 # - medium: Regular monitoring
 # - low: Occasional checks
 
-# Total: 75 stocks (10 UK + 65 US)
-# Sectors: Technology, Financial Services, Healthcare, Consumer, Industrials, Energy
+# Total: 150 stocks (15 UK + 135 US)
+# Sectors: Technology, Financial Services, Healthcare, Consumer, Industrials, Energy, Materials
