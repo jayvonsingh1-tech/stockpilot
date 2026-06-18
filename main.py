@@ -67,6 +67,9 @@ class StockPilot:
             self.telegram_bot = create_bot(bot_token, chat_id)
             await self.telegram_bot.initialize()
             
+            # Start polling for commands
+            await self.telegram_bot.start_polling()
+            
             # Send startup message
             await self.telegram_bot.send_alert(
                 "StockPilot Started",
@@ -188,10 +191,14 @@ class StockPilot:
             logger.info("\nShutting down StockPilot...")
             if self.scheduler:
                 self.scheduler.stop()
+            if self.telegram_bot:
+                await self.telegram_bot.stop_polling()
         except Exception as e:
             logger.error(f"Error in main loop: {e}", exc_info=True)
             if self.scheduler:
                 self.scheduler.stop()
+            if self.telegram_bot:
+                await self.telegram_bot.stop_polling()
         finally:
             logger.info("StockPilot stopped")
 

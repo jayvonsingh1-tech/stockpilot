@@ -54,10 +54,70 @@ class TelegramBot:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message)
             )
             
+            # Initialize the application (but don't start polling yet)
+            await self.application.initialize()
+            
             logger.info("Telegram bot initialized successfully")
         except Exception as e:
             logger.error(f"Error initializing Telegram bot: {e}")
             raise
+    
+    async def start_polling(self):
+        """Start the bot in polling mode to receive commands"""
+        try:
+            if not self.application:
+                await self.initialize()
+            
+            logger.info("Starting Telegram bot polling...")
+            await self.application.start()
+            await self.application.updater.start_polling(drop_pending_updates=True)
+            logger.info("Telegram bot polling started")
+        except Exception as e:
+            logger.error(f"Error starting bot polling: {e}")
+            raise
+    
+    async def stop_polling(self):
+        """Stop the bot polling"""
+        try:
+            if self.application and self.application.updater:
+                await self.application.updater.stop()
+                await self.application.stop()
+                await self.application.shutdown()
+                logger.info("Telegram bot polling stopped")
+        except Exception as e:
+            logger.error(f"Error stopping bot polling: {e}")
+    
+    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle text messages from users"""
+        try:
+            message_text = update.message.text.strip().upper()
+            
+            # Check if it's a ticker symbol (simple check)
+            if len(message_text) <= 5 and message_text.isalpha():
+                # User sent a ticker, get quick info
+                ticker = message_text
+                await update.message.reply_text(f"🔍 Looking up {ticker}...")
+                
+                from ..data.fetcher import MarketDataFetcher
+                fetcher = MarketDataFetcher()
+                price = fetcher.get_current_price(ticker)
+                
+                if price:
+                    await update.message.reply_text(
+                        f"📊 *{ticker}*\nCurrent Price: ${price:.2f}\n\n"
+                        f"Use /research {ticker} for detailed analysis",
+                        parse_mode="Markdown"
+                    )
+                else:
+                    await update.message.reply_text(f"❌ Could not find data for {ticker}")
+            else:
+                # Generic response
+                await update.message.reply_text(
+                    "Send me a ticker symbol (e.g., AAPL) or use /help for commands"
+                )
+        except Exception as e:
+            logger.error(f"Error handling message: {e}")
+            await update.message.reply_text("Sorry, I encountered an error processing your message.")
     
     async def send_message(self, text: str, parse_mode: str = None) -> bool:
         """
