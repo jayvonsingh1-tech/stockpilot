@@ -72,11 +72,14 @@ class StockPilot:
             
             # Send startup message
             await self.telegram_bot.send_alert(
-                "StockPilot Started",
-                f"🚀 Bot is now running in {self.config.get('mode', 'signal_only')} mode.\n"
-                f"📊 Monitoring {len(self.watchlist)} stocks.\n"
+                "StockPilot Started - Enhanced",
+                f"🚀 Bot is now running in {self.config.get('mode', 'signal_only')} mode.\n\n"
+                f"📊 **Signal Monitoring:** {len(self.watchlist)} watchlist stocks\n"
+                f"🔍 **Daily Screening:** 180+ stocks across all sectors\n"
+                f"📈 **Research:** Top 5 stocks analyzed daily\n"
                 f"🎯 Min Confidence: {self.config.get('signals.min_confidence', 85)}%\n"
-                f"⏰ Scanning every 15 minutes during market hours.",
+                f"⏰ Scanning: Every 15 minutes (market hours)\n"
+                f"📅 Daily Screening: 7:00 AM UK (before markets open)",
                 "INFO"
             )
             
