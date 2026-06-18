@@ -275,36 +275,70 @@ Have a great week! 🚀
         await self._scan_and_send_signals("Manual")
     
     async def _run_daily_screening(self):
-        """Run daily stock screening to find new opportunities"""
+        """Run enhanced daily stock screening with persistent tracking"""
         logger.info("=" * 60)
-        logger.info("DAILY STOCK SCREENING")
+        logger.info("DAILY STOCK SCREENING - ENHANCED")
         logger.info("=" * 60)
         
         try:
             await self.telegram_bot.send_alert(
                 "Daily Screening",
-                "🔍 Starting daily stock screening to find new investment opportunities...",
+                "🔍 Starting enhanced daily stock screening (180+ stocks)...\n"
+                "This will take a few minutes.",
                 "INFO"
             )
             
-            # Run screening
-            candidates = self.stock_screener.screen_daily(max_results=10)
+            # Run enhanced screening (screens 180+ stocks, researches top 5)
+            screening_results = self.stock_screener.screen_daily(max_results=20, research_top=5)
             
-            if candidates:
-                logger.info(f"Found {len(candidates)} high-quality candidates")
+            if screening_results['new_opportunities']:
+                logger.info(f"Found {screening_results['total_screened']} candidates")
+                logger.info(f"Researching top {len(screening_results['new_opportunities'])} stocks")
                 
-                # Send screening results
-                await self.telegram_bot.send_screening_results(candidates)
+                # Send overview of top 20
+                await self.telegram_bot.send_screening_results(screening_results['top_20'])
                 
-                # Generate detailed report for top candidate
-                if candidates[0]['total_score'] >= 85:
-                    top_stock = candidates[0]['ticker']
-                    logger.info(f"Generating detailed report for top candidate: {top_stock}")
-                    
-                    report = self.research_generator.generate_report(top_stock)
-                    if report:
-                        await asyncio.sleep(2)  # Small delay
-                        await self.telegram_bot.send_research_report(report)
+                await asyncio.sleep(2)
+                
+                # Send tracking summary
+                tracking_msg = f"""
+📊 **Tracking Summary**
+
+🎯 **Active Top 10** (Continuously Monitored):
+{self._format_tracked_stocks(screening_results['active_top_10'])}
+
+👀 **Monitoring List** (Recently Dropped):
+{self._format_tracked_stocks(screening_results['monitoring'][:5])}
+
+📈 **Statistics**:
+• Total stocks screened today: {screening_results['total_screened']}
+• Unique stocks tracked: {screening_results['statistics']['total_stocks_screened']}
+• Days of screening data: {screening_results['statistics']['total_screening_days']}
+"""
+                await self.telegram_bot.send_message(tracking_msg)
+                
+                await asyncio.sleep(2)
+                
+                # Generate detailed research reports for top 5 new opportunities
+                for i, stock in enumerate(screening_results['new_opportunities'], 1):
+                    if stock['total_score'] >= 70:  # Only research high-scoring stocks
+                        ticker = stock['ticker']
+                        logger.info(f"Generating detailed report {i}/5 for: {ticker}")
+                        
+                        try:
+                            report = self.research_generator.generate_report(ticker)
+                            if report:
+                                # Save report to tracking database
+                                self.stock_screener.tracker.save_research_report(ticker, report)
+                                
+                                await asyncio.sleep(3)  # Delay between reports
+                                await self.telegram_bot.send_research_report(report)
+                        except Exception as e:
+                            logger.error(f"Error generating report for {ticker}: {e}")
+                            continue
+                
+                logger.info("Daily screening and research complete")
+                
             else:
                 logger.info("No candidates found meeting criteria")
                 await self.telegram_bot.send_screening_results([])
@@ -316,3 +350,17 @@ Have a great week! 🚀
                 f"Error during daily screening: {str(e)}",
                 "ERROR"
             )
+    
+    def _format_tracked_stocks(self, stocks: list) -> str:
+        """Format tracked stocks for display"""
+        if not stocks:
+            return "None"
+        
+        lines = []
+        for stock in stocks[:5]:  # Show top 5
+            ticker = stock.get('ticker', 'N/A')
+            score = stock.get('best_score', 0)
+            days = stock.get('days_in_top10', 0)
+            lines.append(f"• {ticker}: Score {score:.1f} ({days} days tracked)")
+        
+        return '\n'.join(lines)

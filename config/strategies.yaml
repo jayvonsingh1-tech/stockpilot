@@ -1,46 +1,48 @@
-# Strategy Configuration for StockPilot
+# Strategy Configuration for StockPilot - OPTIMIZED
 
-# Trend Following Strategy
+# Trend Following Strategy - Optimized for stronger trends
 trend_following:
   enabled: true
-  weight: 0.30
+  weight: 0.35  # Increased weight - most reliable strategy
   parameters:
-    ema_short: 20
-    ema_medium: 50
-    ema_long: 200
-    min_trend_strength: 0.6  # ADX threshold
-    pullback_percent: 2.0    # % pullback to EMA for entry
-    volume_multiplier: 1.2   # Volume must be X times average
+    ema_short: 12      # Faster response to trends
+    ema_medium: 26     # Standard MACD period
+    ema_long: 200      # Long-term trend filter
+    min_trend_strength: 0.65  # Stronger ADX threshold for quality
+    pullback_percent: 1.5     # Tighter pullback for better entries
+    volume_multiplier: 1.3    # Slightly higher volume confirmation
   
-# Mean Reversion Strategy  
+# Mean Reversion Strategy - Optimized for oversold/overbought extremes
 mean_reversion:
   enabled: true
-  weight: 0.25
+  weight: 0.20  # Reduced - more selective
   parameters:
     bollinger_period: 20
-    bollinger_std: 2.0
-    rsi_oversold: 30
-    rsi_overbought: 70
-    min_deviation_percent: 2.0  # Min % from mean to trigger
+    bollinger_std: 2.5      # Wider bands for extreme moves only
+    rsi_oversold: 25        # More oversold for better entries
+    rsi_overbought: 75      # More overbought for exits
+    min_deviation_percent: 3.0  # Larger deviation for quality setups
     
-# Breakout Strategy
+# Breakout Strategy - Optimized for high-probability breakouts
 breakout:
   enabled: true
   weight: 0.25
   parameters:
-    consolidation_days: 5
-    breakout_volume_multiplier: 1.5
-    min_consolidation_range: 3.0  # Min % range
-    max_consolidation_range: 10.0 # Max % range
-    stop_loss_percent: 2.0
+    consolidation_days: 7        # Longer consolidation = stronger breakout
+    breakout_volume_multiplier: 2.0  # Much higher volume for confirmation
+    min_consolidation_range: 2.0     # Tighter range acceptable
+    max_consolidation_range: 8.0     # Tighter max for quality
+    stop_loss_percent: 1.5           # Tighter stop loss
     
-# Value + Catalyst Strategy
+# Value + Catalyst Strategy - Optimized for quality value plays
 value_catalyst:
   enabled: true
   weight: 0.20
   parameters:
-    max_pe_ratio: 25
-    min_revenue_growth: 10.0  # % YoY
-    max_debt_to_equity: 1.5
-    min_free_cash_flow: 0     # Positive FCF required
-    catalyst_days_ahead: 30   # Look for catalysts within X days
+    max_pe_ratio: 20           # More conservative valuation
+    min_revenue_growth: 15.0   # Higher growth requirement
+    max_debt_to_equity: 1.0    # Lower debt tolerance
+    min_free_cash_flow: 0      # Positive FCF required
+    catalyst_days_ahead: 45    # Longer window for catalysts
+    min_profit_margin: 10.0    # New: Require healthy margins
+    min_roe: 12.0              # New: Require good return on equity

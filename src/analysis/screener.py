@@ -1,5 +1,6 @@
 """
 Stock Screener - Finds new investment opportunities
+Enhanced with persistent tracking and expanded universe
 """
 from typing import Dict, List, Optional
 import pandas as pd
@@ -9,6 +10,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ..data.fetcher import MarketDataFetcher
 from ..analysis.technical import TechnicalAnalysis
+from ..engine.screening_tracker import ScreeningTracker
 from ..utils.logger import setup_logger
 from ..utils.config import get_config
 
@@ -17,54 +19,85 @@ logger = setup_logger(__name__)
 
 
 class StockScreener:
-    """Screens stocks for investment opportunities"""
+    """Screens stocks for investment opportunities with persistent tracking"""
     
     def __init__(self):
         """Initialize stock screener"""
         self.config = get_config()
         self.data_fetcher = MarketDataFetcher()
         self.ta = TechnicalAnalysis()
+        self.tracker = ScreeningTracker()
         
-        # Popular stock universes to screen (deduplicated)
+        # Expanded stock universe - 150+ stocks
         self.us_stocks = [
-            # Tech Giants
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'INTC', 'CRM',
-            # Finance
+            # Mega Cap Tech (15)
+            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'INTC',
+            'CRM', 'ORCL', 'ADBE', 'CSCO', 'AVGO',
+            
+            # Finance & Payments (20)
             'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'BLK', 'SCHW', 'AXP', 'V', 'MA', 'PYPL',
-            # Healthcare
+            'SPGI', 'CME', 'ICE', 'COF', 'USB', 'PNC', 'TFC', 'BK',
+            
+            # Healthcare & Pharma (20)
             'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'ABT', 'MRK', 'LLY', 'BMY', 'AMGN',
-            # Consumer
+            'DHR', 'CVS', 'CI', 'HUM', 'GILD', 'REGN', 'VRTX', 'ISRG', 'SYK', 'BSX',
+            
+            # Consumer & Retail (20)
             'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'COST', 'LOW', 'DIS', 'NFLX',
-            # Industrial
+            'TJX', 'ROST', 'BKNG', 'MAR', 'YUM', 'CMG', 'LULU', 'ULTA', 'DG', 'DLTR',
+            
+            # Industrial & Manufacturing (20)
             'BA', 'CAT', 'GE', 'MMM', 'HON', 'UPS', 'RTX', 'LMT', 'DE', 'EMR',
-            # Energy
+            'FDX', 'NSC', 'UNP', 'CSX', 'WM', 'RSG', 'ITW', 'ETN', 'PH', 'ROK',
+            
+            # Energy & Utilities (15)
             'XOM', 'CVX', 'COP', 'SLB', 'EOG', 'MPC', 'PSX', 'VLO', 'OXY', 'HAL',
-            # Telecom
-            'T', 'VZ', 'TMUS', 'CMCSA',
-            # Retail & Semiconductors
-            'TJX', 'ROST', 'QCOM', 'AVGO', 'TXN', 'ADI', 'MU', 'AMAT', 'LRCX'
+            'NEE', 'DUK', 'SO', 'D', 'AEP',
+            
+            # Semiconductors & Hardware (15)
+            'QCOM', 'TXN', 'ADI', 'MU', 'AMAT', 'LRCX', 'KLAC', 'MCHP', 'NXPI', 'MRVL',
+            'ON', 'SWKS', 'QRVO', 'MPWR', 'ENTG',
+            
+            # Software & Cloud (15)
+            'NOW', 'SNOW', 'DDOG', 'NET', 'ZS', 'CRWD', 'PANW', 'FTNT', 'WDAY', 'TEAM',
+            'ZM', 'DOCU', 'TWLO', 'OKTA', 'VEEV',
+            
+            # Telecom & Media (10)
+            'T', 'VZ', 'TMUS', 'CMCSA', 'CHTR', 'PARA', 'WBD', 'FOXA', 'NWSA', 'OMC',
+            
+            # Materials & Chemicals (10)
+            'LIN', 'APD', 'ECL', 'SHW', 'DD', 'DOW', 'NEM', 'FCX', 'NUE', 'STLD'
         ]
         
         self.uk_stocks = [
-            # FTSE 100 Major Stocks
+            # FTSE 100 Major Stocks (30)
             'SHEL.L', 'AZN.L', 'HSBA.L', 'ULVR.L', 'BP.L', 'GSK.L', 'DGE.L', 'RIO.L',
             'LSEG.L', 'NG.L', 'REL.L', 'BARC.L', 'LLOY.L', 'VOD.L', 'TSCO.L', 'PRU.L',
-            'BT-A.L', 'IMB.L', 'BATS.L', 'AAL.L', 'CRH.L', 'GLEN.L', 'BA.L', 'RKT.L'
+            'BT-A.L', 'IMB.L', 'BATS.L', 'AAL.L', 'CRH.L', 'GLEN.L', 'BA.L', 'RKT.L',
+            'EXPN.L', 'FLTR.L', 'INF.L', 'OCDO.L', 'SBRY.L', 'SSE.L'
         ]
     
-    def screen_daily(self, max_results: int = 10) -> List[Dict]:
+    def screen_daily(self, max_results: int = 20, research_top: int = 5) -> Dict:
         """
-        Run daily stock screen to find new opportunities
+        Run daily stock screen to find new opportunities with persistent tracking
         
         Args:
-            max_results: Maximum number of stocks to return
+            max_results: Maximum number of stocks to screen and return
+            research_top: Number of top stocks to research in detail
             
         Returns:
-            List of recommended stocks with scores
+            Dictionary with screening results and tracking info
         """
         logger.info("=" * 60)
-        logger.info("DAILY STOCK SCREENING")
+        logger.info("DAILY STOCK SCREENING - ENHANCED")
         logger.info("=" * 60)
+        
+        # Get previously tracked stocks
+        active_performers = self.tracker.get_active_top_performers()
+        monitoring_list = self.tracker.get_monitoring_list(days=30)
+        
+        logger.info(f"Active top performers: {len(active_performers)}")
+        logger.info(f"Monitoring list: {len(monitoring_list)}")
         
         candidates = []
         total_stocks = len(self.us_stocks) + len(self.uk_stocks)
@@ -77,14 +110,38 @@ class StockScreener:
         # Sort by total score
         candidates.sort(key=lambda x: x['total_score'], reverse=True)
         
-        # Return top results
+        # Save all screening results
+        self.tracker.save_screening_results(candidates)
+        
+        # Get top candidates
         top_candidates = candidates[:max_results]
         
+        # Update top performers tracking
+        self.tracker.update_top_performers(top_candidates)
+        
+        # Get updated active performers (may have changed)
+        updated_active = self.tracker.get_active_top_performers()
+        
+        # Prepare result with tracking info
+        result = {
+            'new_opportunities': top_candidates[:research_top],  # Top N for detailed research
+            'top_20': top_candidates,  # Top 20 for overview
+            'active_top_10': updated_active,  # Currently tracked top performers
+            'monitoring': monitoring_list[:10],  # Recently dropped from top 10
+            'total_screened': len(candidates),
+            'screening_date': datetime.now().strftime('%Y-%m-%d'),
+            'statistics': self.tracker.get_statistics()
+        }
+        
         logger.info("=" * 60)
-        logger.info(f"SCREENING COMPLETE: Found {len(candidates)} candidates (showing top {len(top_candidates)})")
+        logger.info(f"SCREENING COMPLETE:")
+        logger.info(f"  • Total screened: {len(candidates)}")
+        logger.info(f"  • New opportunities (for research): {len(result['new_opportunities'])}")
+        logger.info(f"  • Active top 10: {len(updated_active)}")
+        logger.info(f"  • Monitoring: {len(monitoring_list)}")
         logger.info("=" * 60)
         
-        return top_candidates
+        return result
     
     def _screen_concurrent(self, tickers: List[str], max_workers: int = 5) -> List[Dict]:
         """
