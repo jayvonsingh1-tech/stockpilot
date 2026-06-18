@@ -102,19 +102,19 @@ class SignalScheduler:
             name='Weekly Report'
         )
         
-        # Schedule daily stock screening (8:00 AM ET before market open)
+        # Schedule daily stock screening (7:00 AM UK / 2:00 AM ET - before markets open)
         self.scheduler.add_job(
             self._run_daily_screening,
-            CronTrigger(hour=8, minute=0, day_of_week='mon-fri', timezone=self.timezone),
+            CronTrigger(hour=7, minute=0, day_of_week='mon-fri', timezone=uk_tz),
             id='daily_screening',
             name='Daily Stock Screening'
         )
         
         self.scheduler.start()
         logger.info("Scheduler started successfully")
-        logger.info("Scanning every 15 minutes during market hours (9:30 AM - 4:00 PM ET)")
+        logger.info("Scanning every 15 minutes during market hours")
+        logger.info("Daily stock screening at 7:00 AM UK (before markets open)")
         logger.info("Daily summary at 9:30 PM UK (after all markets close)")
-        logger.info("Daily stock screening at 8:00 AM (before market open)")
         logger.info(f"Next scan: {self._get_next_scan_time()}")
     
     def stop(self):
