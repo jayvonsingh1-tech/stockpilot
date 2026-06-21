@@ -24,8 +24,8 @@ data:
 
 # Signal Generation
 signals:
-  min_confidence: 85  # Minimum confidence percentage to send signal
-  high_confidence: 92  # Threshold for larger position sizes
+  min_confidence: 75  # Minimum confidence percentage to send signal (lowered from 85)
+  high_confidence: 88  # Threshold for larger position sizes
   max_concurrent_positions: 5
   
 # Risk Management

@@ -1,16 +1,20 @@
 """
 Telegram bot for sending signals and notifications
 Enhanced with interactive commands and trade tracking
+Phase 4A: Interactive feedback and enhanced signals
 """
 import asyncio
 import re
-from telegram import Bot, Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Bot, Update, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from typing import Dict, Optional, List
 from datetime import datetime
 from ..utils.logger import setup_logger
 from ..utils.config import get_config
 from ..engine.trade_database import TradeDatabase
+from ..engine.trade_database_v2 import TradeDatabaseV2
+from .signal_formatter import SignalFormatter
+from .trade_commands import TradeBotCommands
 
 
 logger = setup_logger(__name__)
@@ -32,6 +36,9 @@ class TelegramBot:
         self.bot = None
         self.application = None
         self.db = TradeDatabase()
+        self.db_v2 = TradeDatabaseV2()  # Phase 4A enhanced database
+        self.formatter = SignalFormatter()  # Phase 4A signal formatter
+        self.trade_commands = TradeBotCommands()  # Phase 4A commands
         self.last_signal = None  # Store last signal for confirmation
         
     async def initialize(self):
@@ -40,14 +47,22 @@ class TelegramBot:
             self.bot = Bot(token=self.token)
             self.application = Application.builder().token(self.token).build()
             
-            # Add command handlers
+            # Add command handlers (existing)
             self.application.add_handler(CommandHandler("start", self.cmd_start))
             self.application.add_handler(CommandHandler("status", self.cmd_status))
             self.application.add_handler(CommandHandler("help", self.cmd_help))
-            self.application.add_handler(CommandHandler("trades", self.cmd_trades))
             self.application.add_handler(CommandHandler("portfolio", self.cmd_portfolio))
-            self.application.add_handler(CommandHandler("performance", self.cmd_performance))
             self.application.add_handler(CommandHandler("research", self.cmd_research))
+            
+            # Add Phase 4A command handlers
+            self.application.add_handler(CommandHandler("trades", self.trade_commands.cmd_trades))
+            self.application.add_handler(CommandHandler("trade", self.trade_commands.cmd_trade))
+            self.application.add_handler(CommandHandler("close", self.trade_commands.cmd_close))
+            self.application.add_handler(CommandHandler("performance", self.trade_commands.cmd_performance))
+            self.application.add_handler(CommandHandler("dashboard", self.trade_commands.cmd_dashboard))
+            
+            # Add callback handler for interactive buttons (Phase 4A)
+            self.application.add_handler(CallbackQueryHandler(self.trade_commands.handle_callback))
             
             # Add message handler for text messages (trade confirmations, etc.)
             self.application.add_handler(
@@ -57,7 +72,7 @@ class TelegramBot:
             # Initialize the application (but don't start polling yet)
             await self.application.initialize()
             
-            logger.info("Telegram bot initialized successfully")
+            logger.info("Telegram bot initialized successfully with Phase 4A features")
         except Exception as e:
             logger.error(f"Error initializing Telegram bot: {e}")
             raise
@@ -147,7 +162,7 @@ class TelegramBot:
     
     async def send_signal(self, signal: Dict) -> bool:
         """
-        Send a trading signal with Trading 212 instructions
+        Send a trading signal with Phase 4A enhanced format
         
         Args:
             signal: Signal dictionary with trade details
@@ -159,20 +174,68 @@ class TelegramBot:
             # Store signal for potential confirmation
             self.last_signal = signal
             
-            # Save signal to database
-            signal_id = self.db.save_signal(signal)
+            # Save signal to Phase 4A database
+            signal_id = self.db_v2.save_signal(signal)
             signal['signal_id'] = signal_id
+            
+            # Also save to old database for backward compatibility
+            self.db.save_signal(signal)
             
             # Check if it's a long-term investment or CFD trade
             is_long_term = signal.get('trading_type') == 'LONG_TERM_INVESTMENT'
             
+            # Use Phase 4A enhanced format
             if is_long_term:
-                return await self._send_long_term_signal(signal)
+                return await self._send_enhanced_signal(signal, is_long_term=True)
             else:
-                return await self._send_cfd_signal(signal)
+                return await self._send_enhanced_signal(signal, is_long_term=False)
             
         except Exception as e:
             logger.error(f"Error sending signal: {e}")
+            # Fallback to old format if Phase 4A fails
+            try:
+                if signal.get('trading_type') == 'LONG_TERM_INVESTMENT':
+                    return await self._send_long_term_signal(signal)
+                else:
+                    return await self._send_cfd_signal(signal)
+            except:
+                return False
+    
+    async def _send_enhanced_signal(self, signal: Dict, is_long_term: bool = False) -> bool:
+        """Send signal with Phase 4A enhanced format and interactive buttons"""
+        try:
+            signal_id = signal.get('signal_id')
+            
+            # Format signal with enhanced details
+            message = self.formatter.format_signal(signal, signal_id)
+            
+            # Add trading type specific note
+            if is_long_term:
+                message += "\n\n💼 <b>LONG-TERM INVESTMENT</b>\n"
+                message += "• Use Invest account (not CFD)\n"
+                message += "• Hold for fundamental value\n"
+            else:
+                message += "\n\n⚡ <b>CFD TRADE</b>\n"
+                message += "• Use CFD account\n"
+                message += "• Follow stop loss strictly\n"
+            
+            # Get feedback buttons
+            buttons = self.formatter.get_feedback_buttons(signal_id)
+            reply_markup = InlineKeyboardMarkup(buttons)
+            
+            # Send message with buttons
+            await self.bot.send_message(
+                chat_id=self.chat_id,
+                text=message,
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+            
+            logger.info(f"Enhanced signal sent for {signal['ticker']} (ID: {signal_id})")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending enhanced signal: {e}")
             return False
     
     async def _send_cfd_signal(self, signal: Dict) -> bool:

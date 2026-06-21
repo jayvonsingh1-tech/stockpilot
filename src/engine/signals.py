@@ -117,6 +117,9 @@ class SignalGenerator:
                         position_size = self.risk_manager.calculate_position_size(signal, confidence)
                         signal['position_size'] = position_size
                         
+                        # Add timeframe (Phase 4A)
+                        signal['timeframe'] = self._determine_timeframe(signal.get('strategy', 'Unknown'))
+                        
                         # Add additional info
                         signal = self._enrich_signal(signal, df)
                         logger.info(f"✓ Signal generated for {ticker}: {signal['action']} at {confidence}% confidence")
@@ -238,3 +241,26 @@ class SignalGenerator:
         except Exception as e:
             logger.error(f"Error enriching signal: {e}")
             return signal
+    
+    def _determine_timeframe(self, strategy: str) -> str:
+        """
+        Determine timeframe based on strategy (Phase 4A)
+        
+        Args:
+            strategy: Strategy name
+            
+        Returns:
+            Timeframe string: 'day', 'swing', 'position', or 'long'
+        """
+        strategy_lower = strategy.lower()
+        
+        if 'value' in strategy_lower or 'investment' in strategy_lower:
+            return 'long'
+        elif 'position' in strategy_lower:
+            return 'position'
+        elif 'swing' in strategy_lower or 'trend' in strategy_lower or 'breakout' in strategy_lower:
+            return 'swing'
+        elif 'day' in strategy_lower or 'scalp' in strategy_lower or 'mean' in strategy_lower:
+            return 'swing'  # Default to swing for mean reversion
+        else:
+            return 'swing'  # Default
