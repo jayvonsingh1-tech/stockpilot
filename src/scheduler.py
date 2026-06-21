@@ -1,5 +1,6 @@
 """
 Scheduler - Manages scheduled tasks for signal scanning
+Phase 4A: Added reminder scheduler
 """
 import asyncio
 from datetime import datetime, time
@@ -9,6 +10,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import pytz
 from .engine.signals import SignalGenerator
 from .notifications.telegram_bot import TelegramBot
+from .notifications.reminder_scheduler import ReminderScheduler
 from .analysis.screener import StockScreener
 from .analysis.research import ResearchReportGenerator
 from .utils.logger import setup_logger
@@ -39,6 +41,7 @@ class SignalScheduler:
         self.scheduler = AsyncIOScheduler(timezone=self.timezone)
         self.stock_screener = StockScreener()
         self.research_generator = ResearchReportGenerator()
+        self.reminder_scheduler = ReminderScheduler(telegram_bot)  # Phase 4A
         
         # Market hours (adjust for your timezone)
         self.market_open = time(9, 30)  # 9:30 AM ET
@@ -110,10 +113,19 @@ class SignalScheduler:
             name='Daily Stock Screening'
         )
         
+        # Schedule daily reminder check (9:00 AM UK - Phase 4A)
+        self.scheduler.add_job(
+            self._check_trade_reminders,
+            CronTrigger(hour=9, minute=0, day_of_week='mon-fri', timezone=uk_tz),
+            id='reminder_check',
+            name='Trade Reminder Check'
+        )
+        
         self.scheduler.start()
         logger.info("Scheduler started successfully")
         logger.info("Scanning every 15 minutes during market hours")
         logger.info("Daily stock screening at 7:00 AM UK (before markets open)")
+        logger.info("Trade reminders checked at 9:00 AM UK (Phase 4A)")
         logger.info("Daily summary at 9:30 PM UK (after all markets close)")
         logger.info(f"Next scan: {self._get_next_scan_time()}")
     
@@ -364,3 +376,17 @@ Have a great week! 🚀
             lines.append(f"• {ticker}: Score {score:.1f} ({days} days tracked)")
         
         return '\n'.join(lines)
+    
+    async def _check_trade_reminders(self):
+        """Check and send pending trade reminders (Phase 4A)"""
+        try:
+            logger.info("=" * 60)
+            logger.info("CHECKING TRADE REMINDERS (Phase 4A)")
+            logger.info("=" * 60)
+            
+            await self.reminder_scheduler.check_and_send_reminders()
+            
+            logger.info("Trade reminder check complete")
+            
+        except Exception as e:
+            logger.error(f"Error checking trade reminders: {e}", exc_info=True)
