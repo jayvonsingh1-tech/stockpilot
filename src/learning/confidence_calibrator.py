@@ -4,7 +4,7 @@ Adjusts confidence scoring based on actual trade outcomes
 """
 import sqlite3
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from datetime import datetime, timedelta
 from pathlib import Path
 from ..utils.logger import setup_logger
