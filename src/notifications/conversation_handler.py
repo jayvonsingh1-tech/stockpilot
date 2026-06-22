@@ -80,12 +80,12 @@ class ConversationHandler:
             except Exception as e:
                 logger.warning(f"Groq initialization failed: {e}")
         
-        # 2. Try Google Gemini (EXCELLENT - gemini-2.0-flash-exp, 1500 req/day free)
+        # 2. Try Google Gemini (EXCELLENT - gemini-1.5-flash, 1500 req/day free)
         if GOOGLE_AVAILABLE and self.google_key:
             try:
                 genai.configure(api_key=self.google_key)
-                self.google_model = genai.GenerativeModel('gemini-2.0-flash-exp')
-                self.active_provider = "Google Gemini 2.0 Flash"
+                self.google_model = genai.GenerativeModel('gemini-1.5-flash')
+                self.active_provider = "Google Gemini 1.5 Flash"
                 logger.info("✅ Google Gemini AI initialized (EXCELLENT - 1500 req/day)")
                 return
             except Exception as e:
