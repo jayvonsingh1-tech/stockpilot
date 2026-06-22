@@ -1,5 +1,6 @@
 """
 Signal Generator - Combines strategies and generates trading signals
+Enhanced with Phase 4 Learning System
 """
 from typing import Dict, List, Optional
 import pandas as pd
@@ -12,6 +13,10 @@ from ..strategies.breakout import BreakoutStrategy
 from ..strategies.value_investment import ValueInvestmentStrategy
 from .criteria import CriteriaChecker
 from .risk import RiskManager
+from ..learning.performance_tracker import PerformanceTracker
+from ..learning.confidence_calibrator import ConfidenceCalibrator
+from ..learning.preference_learner import PreferenceLearner
+from ..learning.strategy_optimizer import StrategyOptimizer
 from ..utils.logger import setup_logger
 from ..utils.helpers import calculate_risk_reward_ratio
 from ..utils.config import get_config
@@ -21,10 +26,19 @@ logger = setup_logger(__name__)
 
 
 class SignalGenerator:
-    """Generates trading signals using multiple strategies"""
+    """
+    Generates trading signals using multiple strategies
+    Enhanced with machine learning and self-improvement
+    """
     
-    def __init__(self, risk_manager: Optional[RiskManager] = None):
-        """Initialize signal generator"""
+    def __init__(self, risk_manager: Optional[RiskManager] = None, enable_learning: bool = True):
+        """
+        Initialize signal generator
+        
+        Args:
+            risk_manager: Optional risk manager instance
+            enable_learning: Enable learning system (default: True)
+        """
         self.config = get_config()
         self.data_fetcher = MarketDataFetcher()
         self.ta = TechnicalAnalysis()
@@ -41,6 +55,17 @@ class SignalGenerator:
         ]
         
         self.min_confidence = self.config.get('signals.min_confidence', 80)
+        
+        # Phase 4: Initialize learning system
+        self.enable_learning = enable_learning
+        if enable_learning:
+            self.performance_tracker = PerformanceTracker()
+            self.confidence_calibrator = ConfidenceCalibrator()
+            self.preference_learner = PreferenceLearner()
+            self.strategy_optimizer = StrategyOptimizer()
+            logger.info("Learning system enabled")
+        else:
+            logger.info("Learning system disabled")
         
     def scan_for_signals(self, tickers: List[str]) -> List[Dict]:
         """
@@ -98,6 +123,13 @@ class SignalGenerator:
                     
                     # Check if meets minimum confidence
                     if confidence >= self.min_confidence:
+                        # Phase 4: Check user preferences
+                        if self.enable_learning and hasattr(self, 'preference_learner'):
+                            should_send, reason = self.preference_learner.should_send_signal(signal)
+                            if not should_send:
+                                logger.info(f"Signal for {ticker} filtered by preferences: {reason}")
+                                continue
+                        
                         # Check risk limits
                         risk_approved, risk_reason = self.risk_manager.check_risk_limits(signal)
                         if not risk_approved:
@@ -134,6 +166,7 @@ class SignalGenerator:
     def _calculate_confidence(self, signal: Dict, df: pd.DataFrame) -> int:
         """
         Calculate confidence score for a signal
+        Enhanced with Phase 4 confidence calibration
         
         Args:
             signal: Signal dictionary
@@ -185,7 +218,18 @@ class SignalGenerator:
             elif risk_reward >= 2:
                 confidence += 5
             
-            return min(confidence, 99)  # Cap at 99%
+            raw_confidence = min(confidence, 99)  # Cap at 99%
+            
+            # Phase 4: Apply confidence calibration
+            if self.enable_learning and hasattr(self, 'confidence_calibrator'):
+                strategy = signal.get('strategy', 'Unknown')
+                calibrated_confidence = self.confidence_calibrator.get_calibrated_confidence(
+                    strategy, raw_confidence
+                )
+                logger.debug(f"Confidence calibrated: {raw_confidence}% → {calibrated_confidence}%")
+                return calibrated_confidence
+            
+            return raw_confidence
             
         except Exception as e:
             logger.error(f"Error calculating confidence: {e}")
@@ -264,3 +308,147 @@ class SignalGenerator:
             return 'swing'  # Default to swing for mean reversion
         else:
             return 'swing'  # Default
+    
+    def learn_from_trades(self, min_trades: int = 10):
+        """
+        Learn from trading history and improve
+        Phase 4: Machine learning integration
+        
+        Args:
+            min_trades: Minimum trades needed for learning
+        """
+        if not self.enable_learning:
+            logger.warning("Learning system is disabled")
+            return
+        
+        logger.info("Starting learning process...")
+        
+        # Update performance metrics
+        logger.info("Calculating performance metrics...")
+        self.performance_tracker.calculate_daily_metrics()
+        
+        # Update strategy performance
+        logger.info("Updating strategy performance...")
+        for strategy in self.strategies:
+            strategy_name = strategy.__class__.__name__
+            self.performance_tracker.update_strategy_performance(strategy_name)
+        
+        # Calibrate confidence scores
+        logger.info("Calibrating confidence scores...")
+        self.confidence_calibrator.calibrate_all_strategies(min_sample_size=min_trades)
+        
+        # Learn user preferences
+        logger.info("Learning user preferences...")
+        self.preference_learner.learn_from_trades(min_trades=min_trades)
+        
+        logger.info("Learning complete!")
+    
+    def optimize_strategies(self, min_trades: int = 20):
+        """
+        Optimize strategy parameters
+        Phase 4: Strategy optimization
+        
+        Args:
+            min_trades: Minimum trades needed for optimization
+        """
+        if not self.enable_learning:
+            logger.warning("Learning system is disabled")
+            return
+        
+        logger.info("Starting strategy optimization...")
+        
+        for strategy in self.strategies:
+            strategy_name = strategy.__class__.__name__
+            
+            # Check if needs reoptimization
+            if self.strategy_optimizer.needs_reoptimization(strategy_name):
+                logger.info(f"Optimizing {strategy_name}...")
+                
+                # Define parameter ranges (example)
+                param_ranges = {
+                    'min_confidence': range(75, 95, 5),
+                    'min_risk_reward': [1.5, 2.0, 2.5, 3.0]
+                }
+                
+                # Optimize
+                result = self.strategy_optimizer.optimize_strategy(
+                    strategy_name,
+                    param_ranges,
+                    metric='sharpe_ratio',
+                    min_trades=min_trades
+                )
+                
+                if result:
+                    logger.info(f"{strategy_name} optimized: {result['parameters']}")
+            else:
+                logger.info(f"{strategy_name} doesn't need reoptimization yet")
+        
+        logger.info("Optimization complete!")
+    
+    def get_learning_report(self) -> Dict:
+        """
+        Get comprehensive learning report
+        Phase 4: Learning insights
+        
+        Returns:
+            Dictionary with learning insights
+        """
+        if not self.enable_learning:
+            return {'error': 'Learning system is disabled'}
+        
+        report = {
+            'performance': self.performance_tracker.get_performance_summary(),
+            'preferences': self.preference_learner.get_preference_summary(),
+            'calibration': {},
+            'optimization': {}
+        }
+        
+        # Get calibration report for each strategy
+        for strategy in self.strategies:
+            strategy_name = strategy.__class__.__name__
+            report['calibration'][strategy_name] = self.confidence_calibrator.get_calibration_report(strategy_name)
+            
+            # Get strategy bias
+            bias = self.confidence_calibrator.get_strategy_bias(strategy_name)
+            report['calibration'][strategy_name]['bias'] = bias
+            
+            # Get optimal parameters
+            optimal = self.strategy_optimizer.get_optimal_parameters(strategy_name)
+            if optimal:
+                report['optimization'][strategy_name] = optimal
+        
+        return report
+    
+    def auto_improve(self):
+        """
+        Automatically improve based on recent performance
+        Phase 4: Self-improvement
+        
+        This runs periodically to keep the bot improving
+        """
+        if not self.enable_learning:
+            return
+        
+        logger.info("=" * 60)
+        logger.info("AUTO-IMPROVEMENT PROCESS")
+        logger.info("=" * 60)
+        
+        try:
+            # Learn from recent trades
+            self.learn_from_trades(min_trades=10)
+            
+            # Optimize if enough data
+            self.optimize_strategies(min_trades=20)
+            
+            # Update min confidence based on preferences
+            preferred_conf = self.preference_learner.get_preference('preferred_confidence')
+            if preferred_conf:
+                new_min_conf = int(preferred_conf)
+                if new_min_conf != self.min_confidence:
+                    logger.info(f"Updating min confidence: {self.min_confidence}% → {new_min_conf}%")
+                    self.min_confidence = new_min_conf
+            
+            logger.info("Auto-improvement complete!")
+            
+        except Exception as e:
+            logger.error(f"Error in auto-improvement: {e}")

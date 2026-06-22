@@ -15,6 +15,7 @@ from ..engine.trade_database import TradeDatabase
 from ..engine.trade_database_v2 import TradeDatabaseV2
 from .signal_formatter import SignalFormatter
 from .trade_commands import TradeBotCommands
+from .learning_commands import LearningCommands
 from ..engine.screening_tracker import ScreeningTracker
 
 
@@ -40,6 +41,7 @@ class TelegramBot:
         self.db_v2 = TradeDatabaseV2()  # Phase 4A enhanced database
         self.formatter = SignalFormatter()  # Phase 4A signal formatter
         self.trade_commands = TradeBotCommands()  # Phase 4A commands
+        self.learning_commands = LearningCommands()  # Phase 4 learning commands
         self.screening_tracker = ScreeningTracker()  # Screening tracker
         self.last_signal = None  # Store last signal for confirmation
         
@@ -64,6 +66,15 @@ class TelegramBot:
             self.application.add_handler(CommandHandler("close", self.trade_commands.cmd_close))
             self.application.add_handler(CommandHandler("performance", self.trade_commands.cmd_performance))
             self.application.add_handler(CommandHandler("dashboard", self.trade_commands.cmd_dashboard))
+            
+            # Add Phase 4 learning command handlers
+            self.application.add_handler(CommandHandler("learn", self.learning_commands.cmd_learn))
+            self.application.add_handler(CommandHandler("optimize", self.learning_commands.cmd_optimize))
+            self.application.add_handler(CommandHandler("learning_report", self.learning_commands.cmd_learning_report))
+            self.application.add_handler(CommandHandler("backtest", self.learning_commands.cmd_backtest))
+            self.application.add_handler(CommandHandler("calibration", self.learning_commands.cmd_calibration))
+            self.application.add_handler(CommandHandler("preferences", self.learning_commands.cmd_preferences))
+            self.application.add_handler(CommandHandler("reset_learning", self.learning_commands.cmd_reset_learning))
             
             # Add callback handler for interactive buttons (Phase 4A + Screening)
             self.application.add_handler(CallbackQueryHandler(self.handle_callback))
@@ -560,6 +571,14 @@ Have a great weekend! 🚀
             "  • all_time - All trades (default)\n"
             "/research [TICKER] - Company analysis\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "🧠 LEARNING & OPTIMIZATION (NEW)\n"
+            "/learn - Trigger learning from trades\n"
+            "/optimize - Optimize strategy parameters\n"
+            "/learning_report - View learning insights\n"
+            "/calibration - Confidence calibration\n"
+            "/preferences - Your trading preferences\n"
+            "/backtest [strategy] - Run backtest\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "🔘 INTERACTIVE FEATURES (NEW)\n"
             "• Click ✅ on signals to confirm trades\n"
             "• Click 🎯 buttons to report outcomes\n"
@@ -571,13 +590,15 @@ Have a great weekend! 🚀
             "• All commands work in lowercase too\n"
             "• Use buttons instead of typing when possible\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            "🆕 PHASE 4A FEATURES\n"
+            "🆕 PHASE 4 FEATURES\n"
+            "✅ Machine learning & self-improvement\n"
+            "✅ Confidence calibration\n"
+            "✅ Preference learning\n"
+            "✅ Strategy optimization\n"
+            "✅ Backtesting engine\n"
             "✅ Enhanced signals with precise timeframes\n"
-            "✅ Multiple take profit levels (TP1, TP2, TP3)\n"
             "✅ Interactive feedback buttons\n"
-            "✅ Automatic trade reminders\n"
-            "✅ Real-time performance tracking\n"
-            "✅ Strategy-level analytics\n\n"
+            "✅ Automatic trade reminders\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "📚 EXAMPLES\n"
             "/trade 42 - View trade #42\n"
