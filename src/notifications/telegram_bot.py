@@ -2,6 +2,7 @@
 Telegram bot for sending signals and notifications
 Enhanced with interactive commands and trade tracking
 Phase 4A: Interactive feedback and enhanced signals
+Phase 5: Conversational AI with free APIs
 """
 import asyncio
 import re
@@ -17,13 +18,15 @@ from .signal_formatter import SignalFormatter
 from .trade_commands import TradeBotCommands
 from .learning_commands import LearningCommands
 from ..engine.screening_tracker import ScreeningTracker
+from .conversation_handler import create_conversation_handler  # Phase 5
+from .context_builder import create_context_builder  # Phase 5
 
 
 logger = setup_logger(__name__)
 
 
 class TelegramBot:
-    """Telegram bot for StockPilot with interactive features"""
+    """Telegram bot for StockPilot with interactive features and conversational AI"""
     
     def __init__(self, token: str, chat_id: str):
         """
@@ -44,6 +47,10 @@ class TelegramBot:
         self.learning_commands = LearningCommands()  # Phase 4 learning commands
         self.screening_tracker = ScreeningTracker()  # Screening tracker
         self.last_signal = None  # Store last signal for confirmation
+        
+        # Phase 5: Conversational AI
+        self.conversation_handler = create_conversation_handler()  # AI handler
+        self.context_builder = create_context_builder()  # Context builder
         
     async def initialize(self):
         """Initialize the bot"""
@@ -118,14 +125,15 @@ class TelegramBot:
             logger.error(f"Error stopping bot polling: {e}")
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle text messages from users"""
+        """Handle text messages from users - Phase 5: Enhanced with conversational AI"""
         try:
-            message_text = update.message.text.strip().upper()
+            message_text = update.message.text.strip()
+            message_upper = message_text.upper()
             
             # Check if it's a ticker symbol (simple check)
-            if len(message_text) <= 5 and message_text.isalpha():
+            if len(message_upper) <= 5 and message_upper.isalpha():
                 # User sent a ticker, get quick info
-                ticker = message_text
+                ticker = message_upper
                 await update.message.reply_text(f"🔍 Looking up {ticker}...")
                 
                 from ..data.fetcher import MarketDataFetcher
@@ -135,19 +143,51 @@ class TelegramBot:
                 if price:
                     await update.message.reply_text(
                         f"📊 *{ticker}*\nCurrent Price: ${price:.2f}\n\n"
-                        f"Use /research {ticker} for detailed analysis",
+                        f"Use /research {ticker} for detailed analysis\n"
+                        f"Or ask me anything about {ticker}!",
                         parse_mode="Markdown"
                     )
                 else:
                     await update.message.reply_text(f"❌ Could not find data for {ticker}")
             else:
-                # Generic response
-                await update.message.reply_text(
-                    "Send me a ticker symbol (e.g., AAPL) or use /help for commands"
-                )
+                # Phase 5: Use conversational AI for natural language queries
+                if self.conversation_handler.is_available():
+                    # Show typing indicator
+                    await update.message.chat.send_action(action="typing")
+                    
+                    # Build context
+                    trading_context = self.context_builder.build_context(message_text)
+                    
+                    # Get AI response
+                    ai_response = await self.conversation_handler.handle_message(
+                        message=message_text,
+                        context=trading_context
+                    )
+                    
+                    # Send response
+                    await update.message.reply_text(
+                        ai_response,
+                        parse_mode="Markdown"
+                    )
+                    
+                    logger.info(f"AI response sent for: {message_text[:50]}...")
+                else:
+                    # Fallback: Generic response
+                    await update.message.reply_text(
+                        "💬 I'm here to help! You can:\n\n"
+                        "• Send a ticker symbol (e.g., AAPL)\n"
+                        "• Use /help for all commands\n"
+                        "• Ask me questions about your portfolio\n\n"
+                        "💡 **Tip:** Set up free AI for full conversations:\n"
+                        "• Groq (BEST): https://console.groq.com/\n"
+                        "• Google (EXCELLENT): https://aistudio.google.com/\n"
+                        "• OpenRouter (GOOD): https://openrouter.ai/"
+                    )
         except Exception as e:
             logger.error(f"Error handling message: {e}")
-            await update.message.reply_text("Sorry, I encountered an error processing your message.")
+            await update.message.reply_text(
+                "Sorry, I encountered an error. Try using commands like /help or /portfolio"
+            )
     
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle all callback queries (trade buttons + screening buttons)"""
