@@ -80,12 +80,17 @@ class ConversationHandler:
             except Exception as e:
                 logger.warning(f"Groq initialization failed: {e}")
         
-        # 2. Try Google Gemini (EXCELLENT - gemini-pro, 1500 req/day free)
+        # 2. Try Google Gemini (EXCELLENT - gemini-1.5-pro, 1500 req/day free)
         if GOOGLE_AVAILABLE and self.google_key:
             try:
                 genai.configure(api_key=self.google_key)
-                self.google_model = genai.GenerativeModel('gemini-pro')
-                self.active_provider = "Google Gemini Pro"
+                # Try gemini-1.5-pro first, fallback to gemini-pro
+                try:
+                    self.google_model = genai.GenerativeModel('gemini-1.5-pro')
+                    self.active_provider = "Google Gemini 1.5 Pro"
+                except:
+                    self.google_model = genai.GenerativeModel('gemini-pro')
+                    self.active_provider = "Google Gemini Pro"
                 logger.info("✅ Google Gemini AI initialized (EXCELLENT - 1500 req/day)")
                 return
             except Exception as e:
@@ -178,17 +183,18 @@ class ConversationHandler:
             raise
     
     async def _call_google(self, message: str, system_prompt: str) -> str:
-        """Call Google Gemini API (EXCELLENT - gemini-2.0-flash-exp)"""
+        """Call Google Gemini API (EXCELLENT - gemini-1.5-pro)"""
         try:
             # Combine system prompt and message for Gemini
             full_prompt = f"{system_prompt}\n\nUser: {message}\n\nAssistant:"
             
+            # Use the correct generation config
             response = self.google_model.generate_content(
                 full_prompt,
-                generation_config={
-                    'temperature': 0.7,
-                    'max_output_tokens': 1000,
-                }
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    max_output_tokens=1000,
+                )
             )
             
             ai_response = response.text
