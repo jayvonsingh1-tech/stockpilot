@@ -110,12 +110,16 @@ class SignalFormatter:
         max_hold_date = now + timedelta(days=tf_details['max_days'])
         exit_by_date = now + timedelta(days=tf_details['max_days'] + 1)
         
-        # Build message
+        # Build message with clear action header
         message = f"""
 🚀 <b>TRADING SIGNAL #{signal_id if signal_id else 'NEW'}</b>
 
+⚡ <b>CFD TRADE - BUY NOW!</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 📈 <b>{action} {ticker}</b>
-💰 <b>Entry:</b> ${entry_price:.2f}
+💰 <b>Entry Price:</b> ${entry_price:.2f}
 🛑 <b>Stop Loss:</b> ${stop_loss:.2f} (-{sl_percent:.1f}%)
 
 ✅ <b>Take Profit Targets:</b>
@@ -129,18 +133,28 @@ class SignalFormatter:
             message += f"• <b>TP3:</b> ${tp3:.2f} (+{tp3_percent:.1f}%) - Expected: {tf_details['tp3_days']} days\n"
         
         message += f"""
-⏰ <b>TIMEFRAME DETAILS:</b>
-• <b>Strategy:</b> {strategy} ({tf_details['name']})
-• <b>Recommended Hold:</b> {tf_details['hold_range']}
-• <b>Entry Window:</b> Next 24 hours (by {entry_window.strftime('%b %d, %H:%M')})
-• <b>Review Date:</b> {review_date.strftime('%b %d, %Y')} ({tf_details['review_days']} days)
-• <b>Max Hold:</b> {max_hold_date.strftime('%b %d, %Y')} ({tf_details['max_days']} days)
-• <b>Exit if no TP:</b> {exit_by_date.strftime('%b %d, %Y')}
 
-📊 <b>SIGNAL DETAILS:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⏰ <b>WHEN TO BUY:</b>
+🔴 <b>IMMEDIATELY</b> - Enter within next 24 hours
+⏱️ Deadline: {entry_window.strftime('%b %d at %H:%M UK')}
+
+⏰ <b>WHEN TO SELL:</b>
+• <b>TP1 Target:</b> {review_date.strftime('%b %d')} (Day {tf_details['tp1_days']})
+• <b>TP2 Target:</b> Around Day {tf_details['tp2_days']}
+• <b>TP3 Target:</b> Around Day {tf_details['tp3_days']}
+• <b>Max Hold:</b> {max_hold_date.strftime('%b %d')} - EXIT if no TP hit
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 <b>TRADE INFO:</b>
 • <b>Confidence:</b> {confidence}%
 • <b>Risk/Reward:</b> {risk_reward:.1f}:1
-• <b>Strategy:</b> {strategy}
+• <b>Strategy:</b> {strategy} ({tf_details['name']})
+• <b>Hold Period:</b> {tf_details['hold_range']}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💡 <b>EXIT STRATEGY:</b>
 """
@@ -158,10 +172,24 @@ class SignalFormatter:
                     message += f"• {reason}\n"
         
         message += f"""
-📅 <b>REMINDERS:</b>
-• Day {tf_details['review_days']}: Check progress and adjust stops
-• Day {tf_details['max_days']}: Consider trailing stop
-• Day {tf_details['max_days'] + 1}: Exit if still open
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📅 <b>AUTOMATIC REMINDERS:</b>
+✅ Day {tf_details['review_days']}: Check progress and adjust stops
+✅ Day {tf_details['max_days']}: Consider trailing stop
+✅ Day {tf_details['max_days'] + 1}: EXIT if still open
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 <b>QUICK ACTION CHECKLIST:</b>
+☐ Open Trading 212 CFD account
+☐ Search for {ticker}
+☐ Set BUY order at ${entry_price:.2f}
+☐ Set STOP LOSS at ${stop_loss:.2f}
+☐ Set TAKE PROFIT at ${tp1:.2f}
+☐ Place order NOW (within 24 hours)
+☐ Click ✅ below when done
 
 <i>Did you take this trade?</i>
 """

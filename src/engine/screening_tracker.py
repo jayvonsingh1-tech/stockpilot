@@ -81,6 +81,17 @@ class ScreeningTracker:
             )
         ''')
         
+        # Table for user actions on screening results
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_screening_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT NOT NULL,
+                action TEXT NOT NULL,
+                action_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
         conn.commit()
         conn.close()
         logger.info(f"Screening tracker database initialized: {self.db_path}")
@@ -346,3 +357,105 @@ class ScreeningTracker:
             'monitoring_list_size': monitoring_count,
             'total_screening_days': screening_days
         }
+    
+    def save_user_action(self, ticker: str, action: str):
+        """
+        Save user action on a screening result
+        
+        Args:
+            ticker: Stock ticker
+            action: Action taken (watchlist, bought, skipped)
+        """
+        today = datetime.now().strftime('%Y-%m-%d')
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO user_screening_actions
+                (ticker, action, action_date)
+                VALUES (?, ?, ?)
+            ''', (ticker, action, today))
+            conn.commit()
+            logger.info(f"Saved user action: {action} for {ticker}")
+        except Exception as e:
+            logger.error(f"Error saving user action for {ticker}: {e}")
+        finally:
+            conn.close()
+    
+    def get_user_actions(self, ticker: Optional[str] = None, days: int = 30) -> List[Dict]:
+        """
+        Get user actions on screening results
+        
+        Args:
+            ticker: Optional ticker to filter by
+            days: Number of days to look back
+            
+        Returns:
+            List of user actions
+        """
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+        
+        if ticker:
+            cursor.execute('''
+                SELECT * FROM user_screening_actions
+                WHERE ticker = ? AND action_date >= ?
+                ORDER BY action_date DESC
+            ''', (ticker, cutoff_date))
+        else:
+            cursor.execute('''
+                SELECT * FROM user_screening_actions
+                WHERE action_date >= ?
+                ORDER BY action_date DESC
+            ''', (cutoff_date,))
+        
+        results = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        
+        return results
+    
+    def get_watchlist_stocks(self) -> List[str]:
+        """
+        Get stocks user added to watchlist
+        
+        Returns:
+            List of ticker symbols
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT DISTINCT ticker FROM user_screening_actions
+            WHERE action = 'watchlist'
+            ORDER BY action_date DESC
+        ''')
+        
+        results = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        
+        return results
+    
+    def get_bought_stocks(self) -> List[str]:
+        """
+        Get stocks user bought
+        
+        Returns:
+            List of ticker symbols
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT DISTINCT ticker FROM user_screening_actions
+            WHERE action = 'bought'
+            ORDER BY action_date DESC
+        ''')
+        
+        results = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        
+        return results

@@ -15,6 +15,7 @@ from ..engine.trade_database import TradeDatabase
 from ..engine.trade_database_v2 import TradeDatabaseV2
 from .signal_formatter import SignalFormatter
 from .trade_commands import TradeBotCommands
+from ..engine.screening_tracker import ScreeningTracker
 
 
 logger = setup_logger(__name__)
@@ -39,6 +40,7 @@ class TelegramBot:
         self.db_v2 = TradeDatabaseV2()  # Phase 4A enhanced database
         self.formatter = SignalFormatter()  # Phase 4A signal formatter
         self.trade_commands = TradeBotCommands()  # Phase 4A commands
+        self.screening_tracker = ScreeningTracker()  # Screening tracker
         self.last_signal = None  # Store last signal for confirmation
         
     async def initialize(self):
@@ -53,6 +55,8 @@ class TelegramBot:
             self.application.add_handler(CommandHandler("help", self.cmd_help))
             self.application.add_handler(CommandHandler("portfolio", self.cmd_portfolio))
             self.application.add_handler(CommandHandler("research", self.cmd_research))
+            self.application.add_handler(CommandHandler("watchlist", self.cmd_watchlist))
+            self.application.add_handler(CommandHandler("mywatchlist", self.cmd_my_watchlist))
             
             # Add Phase 4A command handlers
             self.application.add_handler(CommandHandler("trades", self.trade_commands.cmd_trades))
@@ -61,8 +65,8 @@ class TelegramBot:
             self.application.add_handler(CommandHandler("performance", self.trade_commands.cmd_performance))
             self.application.add_handler(CommandHandler("dashboard", self.trade_commands.cmd_dashboard))
             
-            # Add callback handler for interactive buttons (Phase 4A)
-            self.application.add_handler(CallbackQueryHandler(self.trade_commands.handle_callback))
+            # Add callback handler for interactive buttons (Phase 4A + Screening)
+            self.application.add_handler(CallbackQueryHandler(self.handle_callback))
             
             # Add message handler for text messages (trade confirmations, etc.)
             self.application.add_handler(
@@ -133,6 +137,63 @@ class TelegramBot:
         except Exception as e:
             logger.error(f"Error handling message: {e}")
             await update.message.reply_text("Sorry, I encountered an error processing your message.")
+    
+    async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle all callback queries (trade buttons + screening buttons)"""
+        query = update.callback_query
+        await query.answer()
+        
+        callback_data = query.data
+        
+        # Check if it's a screening callback
+        if callback_data.startswith('screen_'):
+            await self._handle_screening_callback(query, callback_data)
+        else:
+            # Delegate to trade commands handler
+            await self.trade_commands.handle_callback(update, context)
+    
+    async def _handle_screening_callback(self, query, callback_data: str):
+        """Handle screening-related button clicks"""
+        try:
+            parts = callback_data.split('_')
+            action = parts[1]  # watchlist, bought, skip
+            ticker = '_'.join(parts[2:])  # Handle tickers with underscores
+            
+            if action == 'watchlist':
+                # User added to watchlist
+                self.screening_tracker.save_user_action(ticker, 'watchlist')
+                await query.edit_message_text(
+                    text=query.message.text + f"\n\n✅ <b>Great! {ticker} added to your watchlist.</b>\n"
+                         f"💡 Monitor it for 1-2 weeks, then buy when ready.",
+                    parse_mode='HTML'
+                )
+                logger.info(f"User added {ticker} to watchlist")
+                
+            elif action == 'bought':
+                # User bought the stock
+                self.screening_tracker.save_user_action(ticker, 'bought')
+                await query.edit_message_text(
+                    text=query.message.text + f"\n\n🎉 <b>Excellent! You bought {ticker}!</b>\n"
+                         f"📊 Hold for 3-12 months\n"
+                         f"🎯 Target: +20% to +50% gain\n"
+                         f"💡 Use /portfolio to track your investments",
+                    parse_mode='HTML'
+                )
+                logger.info(f"User bought {ticker}")
+                
+            elif action == 'skip':
+                # User skipped this stock
+                self.screening_tracker.save_user_action(ticker, 'skipped')
+                await query.edit_message_text(
+                    text=query.message.text + f"\n\n👍 <b>Noted! Skipping {ticker}.</b>\n"
+                         f"No problem - focus on the stocks you're confident in!",
+                    parse_mode='HTML'
+                )
+                logger.info(f"User skipped {ticker}")
+                
+        except Exception as e:
+            logger.error(f"Error handling screening callback: {e}")
+            await query.message.reply_text("Sorry, there was an error processing your action.")
     
     async def send_message(self, text: str, parse_mode: str = None) -> bool:
         """
@@ -481,6 +542,10 @@ Have a great weekend! 🚀
             "/status - Check bot status\n"
             "/help - Show this help message\n\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "⭐ WATCHLIST & SCREENING\n"
+            "/watchlist - View your watchlist & bought stocks\n"
+            "/mywatchlist - Same as /watchlist\n\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "📊 TRADE MANAGEMENT (NEW)\n"
             "/trades - List all open trades with P&L\n"
             "/trade [id] - View specific trade details\n"
@@ -679,6 +744,64 @@ Use /portfolio for current positions
             logger.error(f"Error in research command: {e}")
             await update.message.reply_text(f"❌ Error researching {ticker}: {str(e)}")
     
+    async def cmd_watchlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /watchlist command - show user's watchlist actions"""
+        try:
+            watchlist_stocks = self.screening_tracker.get_watchlist_stocks()
+            bought_stocks = self.screening_tracker.get_bought_stocks()
+            
+            if not watchlist_stocks and not bought_stocks:
+                await update.message.reply_text(
+                    "⭐ *Your Watchlist*\n\n"
+                    "You haven't added any stocks yet!\n\n"
+                    "When you receive the daily screening at 7 AM, click the buttons to track your actions:\n"
+                    "• ⭐ Added to Watchlist\n"
+                    "• 💰 Bought It!\n"
+                    "• ❌ Not Interested",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            message = "⭐ *YOUR INVESTMENT TRACKING*\n\n"
+            
+            if watchlist_stocks:
+                message += "📋 *WATCHLIST* (Monitoring):\n"
+                for ticker in watchlist_stocks[:10]:
+                    # Get current price
+                    from ..data.fetcher import MarketDataFetcher
+                    fetcher = MarketDataFetcher()
+                    price = fetcher.get_current_price(ticker)
+                    price_str = f"${price:.2f}" if price else "N/A"
+                    message += f"• {ticker} - Current: {price_str}\n"
+                message += "\n"
+            
+            if bought_stocks:
+                message += "💰 *BOUGHT* (Long-term Holdings):\n"
+                for ticker in bought_stocks[:10]:
+                    # Get current price
+                    from ..data.fetcher import MarketDataFetcher
+                    fetcher = MarketDataFetcher()
+                    price = fetcher.get_current_price(ticker)
+                    price_str = f"${price:.2f}" if price else "N/A"
+                    message += f"• {ticker} - Current: {price_str}\n"
+                message += "\n"
+            
+            message += "💡 *Tips:*\n"
+            message += "• Watchlist stocks: Monitor for 1-2 weeks before buying\n"
+            message += "• Bought stocks: Hold for 3-12 months\n"
+            message += "• Target: +20% to +50% gain\n\n"
+            message += "Use /research TICKER for detailed analysis"
+            
+            await update.message.reply_text(message, parse_mode="Markdown")
+            
+        except Exception as e:
+            logger.error(f"Error in watchlist command: {e}")
+            await update.message.reply_text("❌ Error retrieving watchlist")
+    
+    async def cmd_my_watchlist(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /mywatchlist command - alias for /watchlist"""
+        await self.cmd_watchlist(update, context)
+    
     async def send_screening_results(self, candidates: list) -> bool:
         """
         Send daily screening results with stock recommendations
@@ -694,46 +817,135 @@ Use /portfolio for current positions
                 message = "📊 *DAILY STOCK SCREENING*\n\nNo new opportunities found today meeting our criteria (70+ score)."
                 return await self.send_message(message)
             
-            message = f"""
+            # Send each stock individually with interactive buttons
+            header_message = f"""
 📊 *DAILY STOCK SCREENING RESULTS*
 {datetime.now().strftime('%A, %d %B %Y')}
 
-Found *{len(candidates)}* high-quality investment opportunities:
+🎯 *WHAT TO DO WITH THESE STOCKS:*
+
+These are LONG-TERM INVESTMENT opportunities for your *STOCKS & SHARES ISA* (NOT CFD).
+
+✅ *ACTION PLAN:*
+1️⃣ Add top 5 stocks to your Trading 212 *WATCHLIST*
+2️⃣ Monitor them for 1-2 weeks
+3️⃣ Buy when price dips or shows strength
+4️⃣ Hold for 3-12 months (long-term growth)
+
+⚠️ *IMPORTANT:*
+• Use INVEST account (NOT CFD)
+• These are NOT day trades
+• No stop loss needed (long-term holds)
+• Buy in portions (e.g., 3 separate buys)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Found *{len(candidates)}* high-quality opportunities:
+
+Click the buttons below each stock to track your actions! 👇
 """
             
-            for i, stock in enumerate(candidates, 1):
+            # Send header
+            await self.send_message(header_message)
+            await asyncio.sleep(1)
+            
+            # Send each stock with buttons
+            for i, stock in enumerate(candidates[:10], 1):  # Show top 10
                 score_emoji = "🟢" if stock['total_score'] >= 85 else "🟡" if stock['total_score'] >= 75 else "⚪"
                 
-                message += f"""
-{score_emoji} *#{i}. {stock['ticker']}* - {stock['name']}
-📊 Overall Score: *{stock['total_score']}/100*
-🏢 Sector: {stock['sector']}
-💰 Price: ${stock['current_price']:.2f}
+                # Determine action based on score
+                if stock['total_score'] >= 85:
+                    action = "🔥 *STRONG BUY* - Add to watchlist NOW"
+                    account_type = "📊 Stocks & Shares ISA"
+                    timing = "⏰ Buy within 1-2 weeks"
+                elif stock['total_score'] >= 75:
+                    action = "✅ *BUY* - Good opportunity"
+                    account_type = "📊 Stocks & Shares ISA"
+                    timing = "⏰ Buy when price dips"
+                else:
+                    action = "👀 *MONITOR* - Watch for now"
+                    account_type = "📊 Stocks & Shares ISA"
+                    timing = "⏰ Wait for better entry"
+                
+                stock_message = f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📈 Scores:
+{score_emoji} *#{i}. {stock['ticker']}* - {stock['name']}
+📊 Score: *{stock['total_score']}/100*
+💰 Current Price: *${stock['current_price']:.2f}*
+🏢 {stock['sector']}
+
+{action}
+{account_type}
+{timing}
+
+📈 Breakdown:
 • Technical: {stock['technical_score']}/100
 • Fundamental: {stock['fundamental_score']}/100
 • Momentum: {stock['momentum_score']}/100
 • Value: {stock['value_score']}/100
 
-✅ *{stock['recommendation']}*
-
-Reasons: {', '.join(stock['reasons'])}
-
+💡 Why: {', '.join(stock['reasons'])}
+"""
+                
+                # Create interactive buttons for this stock
+                from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                
+                ticker = stock['ticker']
+                buttons = [
+                    [
+                        InlineKeyboardButton("⭐ Added to Watchlist", callback_data=f"screen_watchlist_{ticker}"),
+                        InlineKeyboardButton("💰 Bought It!", callback_data=f"screen_bought_{ticker}")
+                    ],
+                    [
+                        InlineKeyboardButton("❌ Not Interested", callback_data=f"screen_skip_{ticker}")
+                    ]
+                ]
+                reply_markup = InlineKeyboardMarkup(buttons)
+                
+                # Send stock with buttons
+                await self.bot.send_message(
+                    chat_id=self.chat_id,
+                    text=stock_message,
+                    parse_mode='Markdown',
+                    reply_markup=reply_markup
+                )
+                
+                await asyncio.sleep(0.5)  # Small delay between stocks
+            
+            # Send footer
+            footer_message = f"""
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📱 *HOW TO ADD TO WATCHLIST:*
+1. Open Trading 212 app
+2. Search for ticker (e.g., {candidates[0]['ticker']})
+3. Tap the ⭐ star icon to add to watchlist
+4. Click "⭐ Added to Watchlist" button above to track it!
+
+💼 *INVESTMENT STRATEGY:*
+• These are LONG-TERM investments (3-12 months)
+• Buy with money you won't need soon
+• Don't panic sell on small dips
+• Consider buying in 2-3 portions over time
+
+🚫 *DO NOT:*
+• Use CFD account for these
+• Day trade these stocks
+• Use leverage
+• Invest money you need this month
+
+📊 *WHEN TO SELL:*
+• When stock reaches +20% to +50% gain
+• If fundamentals change (company problems)
+• After 6-12 months to rebalance portfolio
+• NOT on small daily fluctuations
+
+You'll get separate CFD trading signals during market hours for short-term trades! 🚀
 """
             
-            message += f"""
-
-💡 *RECOMMENDATION:*
-Add the top {min(3, len(candidates))} stocks to your watchlist for monitoring.
-
-These stocks scored 70+ across technical, fundamental, momentum, and value metrics.
-"""
-            
-            return await self.send_message(message)
+            await self.send_message(footer_message)
+            return True
             
         except Exception as e:
             logger.error(f"Error sending screening results: {e}")
