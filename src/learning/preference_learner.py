@@ -4,7 +4,7 @@ Learns which signals you take, skip, and why
 """
 import sqlite3
 import numpy as np
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 from pathlib import Path
 from collections import Counter
